@@ -1,6 +1,7 @@
 {
   "name": "progiprojekt",
   "version": "1.0.0",
+  "type": "module",
   "description": "Ovaj projekt rezultat je timskog rada u sklopu projektnog zadatka kolegija [Programsko inženjerstvo](https://www.fer.unizg.hr/predmet/proinz) na Fakultetu elektrotehnike i računarstva Sveučilišta u Zagrebu.",
   "main": "index.js",
   "dependencies": {
