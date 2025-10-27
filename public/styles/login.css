@@ -114,3 +114,7 @@ a:hover {
   text-decoration: underline;
 }
 
+#togglePassword{
+  background-color: antiquewhite;
+  color:#065f46;
+}
