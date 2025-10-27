@@ -1,13 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/styles/login.css" />
-    <title>Prijava Stanara</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Prijava</title>
+  <link rel="stylesheet" href="styles/login.css" />
+  <script src="scripts/login.js"></script>
 </head>
 <body>
-    ulogiraj se
+  <main class="card">
+    <div class="title-container">
+      <h1 class="title">Prijava - Stanarski info</h1>
+    </div>
+
+    <form id="loginForm" autocomplete="on" novalidate>
+      <div class="field">
+        <label for="email" class="label">Elektronička pošta</label>
+        <input id="email" name="email" type="email" required placeholder="elektronicka.posta@hotmail.com" class="input" />
+      </div>
+
+      <div class="field">
+        <label for="password" class="label">Lozinka</label>
+        <input id="password" name="password" type="password" required minlength="6" placeholder="********" class="input" />
+      </div>
+
+      <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
+
+      <button id="submitBtn" type="submit" class="btn">Ulazak</button>
+
+    </form>
+  </main>
+
+  <script src="/scripts/login.js" defer></script>
 </body>
 </html>
 
