@@ -34,5 +34,31 @@ form.addEventListener('submit', async (e) => {
 
     setFeedback('success', 'Ulazite...');
 
-    /* ovdje ide handleanje email i password*/
+    try {
+      const res = await fetch("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setFeedback("error", data.error || "Neispravni podaci");
+        return;
+      }
+
+      //spremi token i user info privremeno u localStorage
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      setFeedback("success", "Uspješna prijava!");
+      console.log("✅ Logged in:", data);
+  
+      //preusmjeri na početnu
+      window.location.href = "/";
+    } catch (err) {
+      console.error(err);
+      setFeedback("error", "Greška u komunikaciji s poslužiteljem");
+    }
 });
