@@ -30,15 +30,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.set("view engine", "ejs");
-app.set("views", path.join(__dirname,"..", "views"))
+app.set("views", path.join(__dirname, "..", "views"));
 app.use(express.static(path.join(__dirname, "..", "public")));
+app.set("views", path.join(__dirname, "..", "frontend", "views"));
+app.use(express.static(path.join(__dirname, "..", "frontend", "public")));
 
 app.get("/", (_req, res) => {
     res.render("index");
 });
 
 app.get("/health", (_req, res) => {
-    res.status(200).json({status: "ok", uptime: process.uptime() })
+    res.status(200).json({ status: "ok", uptime: process.uptime() });
 });
 
 app.listen(PORT, () => {
