@@ -1,6 +1,6 @@
-const { client } = require("pg");
+import { Client } from "pg";
 
-const clientInstance = new client({
+const clientInstance = new Client({
     user: "placeholder",
     host: "placeholder",
     database: "placeholder",
