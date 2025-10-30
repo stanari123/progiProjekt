@@ -5,6 +5,7 @@
   "description": "Ovaj projekt rezultat je timskog rada u sklopu projektnog zadatka kolegija [Programsko inženjerstvo](https://www.fer.unizg.hr/predmet/proinz) na Fakultetu elektrotehnike i računarstva Sveučilišta u Zagrebu.",
   "main": "index.js",
   "dependencies": {
+    "@types/node": "^24.9.2",
     "basic-auth": "^2.0.1",
     "bcryptjs": "^3.0.2",
     "buffer-equal-constant-time": "^1.0.1",
@@ -29,9 +30,11 @@
     "morgan": "^1.10.1",
     "ms": "^2.1.3",
     "nanoid": "^5.1.6",
+    "node": "^25.1.0",
     "object-assign": "^4.1.1",
     "on-finished": "^2.3.0",
     "on-headers": "^1.1.0",
+    "pg": "^8.16.3",
     "safe-buffer": "^5.2.1",
     "semver": "^7.7.3",
     "vary": "^1.1.2"
@@ -52,6 +55,7 @@
   },
   "homepage": "https://github.com/stanari123/progiProjekt#readme",
   "devDependencies": {
+    "@types/pg": "^8.15.6",
     "nodemon": "^3.1.10"
   }
 }
