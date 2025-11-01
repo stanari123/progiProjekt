@@ -1,22 +1,2 @@
-import { Client } from "pg";
-
-const clientInstance = new Client({
-    user: "placeholder",
-    host: "placeholder",
-    database: "placeholder",
-    password: "placeholder",
-    port: "placeholder",
-});
-
-async function connectDatabase() {
-    try {
-        clientInstance.connect();
-        console.log("Successful connection to db.");
-    } catch (error) {
-        console.error("Connection error to db.");
-    } finally {
-        await client.end();
-    }
-}
-
-connectDatabase();
+import { createClient } from '@supabase/supabase-js';
+export const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);

@@ -5,6 +5,7 @@
   "description": "Ovaj projekt rezultat je timskog rada u sklopu projektnog zadatka kolegija [Programsko inženjerstvo](https://www.fer.unizg.hr/predmet/proinz) na Fakultetu elektrotehnike i računarstva Sveučilišta u Zagrebu.",
   "main": "index.js",
   "dependencies": {
+    "@supabase/supabase-js": "^2.78.0",
     "@types/node": "^24.9.2",
     "basic-auth": "^2.0.1",
     "bcryptjs": "^3.0.2",
@@ -35,6 +36,7 @@
     "on-finished": "^2.3.0",
     "on-headers": "^1.1.0",
     "pg": "^8.16.3",
+    "postgres": "^3.4.7",
     "safe-buffer": "^5.2.1",
     "semver": "^7.7.3",
     "vary": "^1.1.2"
