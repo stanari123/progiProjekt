@@ -1,147 +1,93 @@
--- Ekstenzija za UUID
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
--- Enumeracije
-CREATE TYPE role_t AS ENUM ('admin','suvlasnik','predstavnik');
-CREATE TYPE visibility_t AS ENUM ('javno','privatno');
-CREATE TYPE vote_choice_t AS ENUM ('da','ne');
-CREATE TYPE meeting_status_t AS ENUM ('skica','zakazano','otkazano','održano');
-CREATE TYPE discussion_status_t AS ENUM ('otvoreno','zatvoreno');
-
--- Korisnici
-CREATE TABLE app_user (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    first_name VARCHAR(30) NOT NULL,
-    last_name VARCHAR(30) NOT NULL,
-    email VARCHAR(50) NOT NULL UNIQUE,
-    phone_number VARCHAR(30),
-    role role_t NOT NULL DEFAULT 'suvlasnik',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE public.app_user (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  first_name character varying NOT NULL,
+  last_name character varying NOT NULL,
+  email character varying NOT NULL UNIQUE,
+  phone_number character varying,
+  role USER-DEFINED NOT NULL DEFAULT 'suvlasnik'::role_t,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  password_hash text NOT NULL,
+  CONSTRAINT app_user_pkey PRIMARY KEY (id)
 );
-
--- Zgrade
-CREATE TABLE building (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(50),
-    address VARCHAR(100) NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE public.building (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name character varying,
+  address character varying NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT building_pkey PRIMARY KEY (id)
 );
-
--- Članstva u zgradi
-CREATE TABLE building_membership (
-    building_id UUID NOT NULL REFERENCES building(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
-    user_role role_t NOT NULL,
-    PRIMARY KEY (building_id, user_id)
+CREATE TABLE public.building_membership (
+  building_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  user_role USER-DEFINED NOT NULL,
+  CONSTRAINT building_membership_pkey PRIMARY KEY (building_id, user_id),
+  CONSTRAINT building_membership_building_id_fkey FOREIGN KEY (building_id) REFERENCES public.building(id),
+  CONSTRAINT building_membership_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id)
 );
-
--- Diskusije
-CREATE TABLE discussion (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    title VARCHAR(100) NOT NULL,
-    poll_description VARCHAR(255),
-    building_id UUID NOT NULL REFERENCES building(id) ON DELETE CASCADE,
-    owner_id UUID REFERENCES app_user(id) ON DELETE SET NULL,
-    visibility visibility_t NOT NULL DEFAULT 'privatno',
-    status discussion_status_t NOT NULL DEFAULT 'otvoreno',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (title, building_id)
+CREATE TABLE public.discussion (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  title character varying NOT NULL,
+  poll_description character varying,
+  building_id uuid NOT NULL,
+  owner_id uuid,
+  visibility USER-DEFINED NOT NULL DEFAULT 'privatno'::visibility_t,
+  status USER-DEFINED NOT NULL DEFAULT 'otvoreno'::discussion_status_t,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT discussion_pkey PRIMARY KEY (id),
+  CONSTRAINT discussion_building_id_fkey FOREIGN KEY (building_id) REFERENCES public.building(id),
+  CONSTRAINT discussion_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.app_user(id)
 );
-
--- Provjera postojanja vlasnika diskusije
-CREATE FUNCTION require_discussion_owner() RETURNS trigger AS $$
-BEGIN
-    IF NEW.owner_id IS NULL THEN
-        RAISE EXCEPTION 'Diskusija mora imati vlasnika';
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_require_discussion_owner
-BEFORE INSERT ON discussion
-FOR EACH ROW EXECUTE FUNCTION require_discussion_owner();
-
--- Sudionici diskusije
-CREATE TABLE discussion_participant (
-    discussion_id UUID NOT NULL REFERENCES discussion(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
-    can_post BOOLEAN DEFAULT TRUE,
-    number_of_messages INTEGER DEFAULT 0,
-    PRIMARY KEY (discussion_id, user_id),
-    CONSTRAINT positive_no_of_messages CHECK (number_of_messages >= 0)
+CREATE TABLE public.discussion_participant (
+  discussion_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  can_post boolean DEFAULT true,
+  number_of_messages integer DEFAULT 0 CHECK (number_of_messages >= 0),
+  CONSTRAINT discussion_participant_pkey PRIMARY KEY (discussion_id, user_id),
+  CONSTRAINT discussion_participant_discussion_id_fkey FOREIGN KEY (discussion_id) REFERENCES public.discussion(id),
+  CONSTRAINT discussion_participant_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id)
 );
-
--- Poruke
-CREATE TABLE message (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    discussion_id UUID NOT NULL REFERENCES discussion(id) ON DELETE CASCADE,
-    author_id UUID REFERENCES app_user(id) ON DELETE SET NULL,
-    body TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE public.message (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  discussion_id uuid NOT NULL,
+  author_id uuid,
+  body text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT message_pkey PRIMARY KEY (id),
+  CONSTRAINT message_discussion_id_fkey FOREIGN KEY (discussion_id) REFERENCES public.discussion(id),
+  CONSTRAINT message_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.app_user(id)
 );
-
--- Provjera postojanja autora poruke
-CREATE FUNCTION require_message_author() RETURNS trigger AS $$
-BEGIN
-    IF NEW.author_id IS NULL THEN
-        RAISE EXCEPTION 'Autor mora postojati!';
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_require_message_author
-BEFORE INSERT ON message
-FOR EACH ROW EXECUTE FUNCTION require_message_author();
-
--- Upload (slike i drugi attachmenti uz poruke)
-CREATE TABLE upload (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    message_id UUID NOT NULL REFERENCES message(id) ON DELETE CASCADE,
-    url TEXT NOT NULL,
-    filename TEXT,
-    content_type TEXT,
-    size_bytes INTEGER,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE public.poll (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  discussion_id uuid NOT NULL,
+  author_id uuid,
+  question text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  closed boolean DEFAULT false,
+  CONSTRAINT poll_pkey PRIMARY KEY (id),
+  CONSTRAINT poll_discussion_id_fkey FOREIGN KEY (discussion_id) REFERENCES public.discussion(id),
+  CONSTRAINT poll_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.app_user(id)
 );
-
--- Ankete u diskusijama
-CREATE TABLE poll (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    discussion_id UUID NOT NULL REFERENCES discussion(id) ON DELETE CASCADE,
-    author_id UUID REFERENCES app_user(id) ON DELETE SET NULL,
-    question TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    closed BOOLEAN DEFAULT FALSE
+CREATE TABLE public.upload (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  message_id uuid NOT NULL,
+  url text NOT NULL,
+  filename text,
+  content_type text,
+  size_bytes integer,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT upload_pkey PRIMARY KEY (id),
+  CONSTRAINT upload_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.message(id)
 );
-
--- Provjera postojanja autora ankete
-CREATE FUNCTION require_poll_author() RETURNS trigger AS $$
-BEGIN
-    IF NEW.author_id IS NULL THEN
-        RAISE EXCEPTION 'Autor ankete mora postojati!';
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_require_poll_author
-BEFORE INSERT ON poll
-FOR EACH ROW EXECUTE FUNCTION require_poll_author();
-
--- Glasovi u anketama
-CREATE TABLE vote (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    poll_id UUID NOT NULL REFERENCES poll(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES app_user(id) ON DELETE SET NULL,
-    value vote_choice_t NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-	UNIQUE (poll_id, user_id)
+CREATE TABLE public.vote (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  poll_id uuid NOT NULL,
+  user_id uuid,
+  value USER-DEFINED NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT vote_pkey PRIMARY KEY (id),
+  CONSTRAINT vote_poll_id_fkey FOREIGN KEY (poll_id) REFERENCES public.poll(id),
+  CONSTRAINT vote_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id)
 );
-
-
-CREATE INDEX idx_message_discussion ON message(discussion_id, created_at DESC);
-CREATE INDEX idx_poll_discussion ON poll(discussion_id);
-CREATE INDEX idx_vote_poll ON vote(poll_id);
-CREATE INDEX idx_discussion_building ON discussion(building_id);
