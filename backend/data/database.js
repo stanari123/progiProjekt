@@ -1,28 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
-export const db = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_KEY
-);
 
-const { Client, Pool } = require("pg");
+const supabaseUrl = process.env.SUPABASE_URL;
+if (!supabaseUrl) throw new Error("supabaseUrl is required.");
 
-const pool = new Pool({
-    user: "placeholder",
-    host: "placeholder",
-    database: "placeholder",
-    password: "placeholder",
-    port: "placeholder",
-});
+const supabaseKey = process.env.SUPABASE_KEY;
+if (!supabaseKey) throw new Error("supabaseKey is required.");
 
-async function connectClient() {
-    const client = await pool.connect();
-    try {
-        console.log("Successful connection to db.");
-    } catch (error) {
-        console.error("Connection error to db.");
-    } finally {
-        client.release();
-    }
-}
-
-connectClient();
+export const supabase = createClient(supabaseUrl, supabaseKey);
