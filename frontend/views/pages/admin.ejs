@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="hr">
+  <head>
+    <%- include("../partials/_head") %>
+    <title>Admin panel</title>
+    <link rel="stylesheet" href="/styles/admin.css" />
+    <script src="/scripts/common.js" defer></script>
+    <script src="/scripts/admin.js" defer></script>
+  </head>
+
+  <body>
+    <%- include("../partials/_topbar") %>
+    <%- include("../partials/_profile_panel") %>
+
+    <main>
+      <div class="admin-cards">
+        <div class="admin-card" id="card-buildings" onclick="location.href='/'">
+          <img src="/images/buildings-placeholder.jpg" alt="Zgrade" />
+          <h2>Zgrade</h2>
+        </div>
+
+        <div class="admin-card" id="card-new-user">
+          <img src="/images/placeholder2.jpg" alt="Novi korisnik" />
+          <h2>Novi korisnik</h2>
+        </div>
+
+        <div class="admin-card" id="card-3">
+          <img src="/images/placeholder3.jpg" alt="StanPlan" />
+          <h2>StanPlan</h2>
+        </div>
+      </div>
+    </main>
+
+    <!-- novi clan popup -->
+    <div class="modal-backdrop" id="newUserModal" aria-hidden="true">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Novi korisnik</h2>
+          <button class="modal-close" id="newUserModalClose" aria-label="Zatvori">×</button>
+        </div>
+        <div class="modal-body">
+          <label class="form-row">
+            <span>Ime</span>
+            <input type="text" id="nu-firstName" />
+          </label>
+          <label class="form-row">
+            <span>Prezime</span>
+            <input type="text" id="nu-lastName" />
+          </label>
+          <label class="form-row">
+            <span>E-pošta</span>
+            <input type="email" id="nu-email" />
+          </label>
+          <label class="form-row">
+            <span>Lozinka</span>
+            <input type="password" id="nu-password" />
+          </label>
+          <label class="form-row">
+            <span>Uloga</span>
+            <select id="nu-role">
+              <option value="predstavnik">Predstavnik</option>
+              <option value="suvlasnik">Suvlasnik</option>
+            </select>
+          </label>
+
+          <label class="form-row">
+            <span>Zgrade</span>
+            <div id="nu-buildings" class="buildings-list">
+            </div>
+          </label>
+
+          <p class="modal-feedback" id="nu-feedback"></p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-primary" id="nu-save">Spremi</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
