@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <%- include('../partials/_head') %>
+  <title>StanBlog<% if (mode === 'detail') { %> — Rasprava<% } %></title>
+
+  <link rel="stylesheet" href="/styles/index.css" />
+  <script src="/scripts/common.js" defer></script>
+
+  <% if (mode === 'list') { %>
+    <script src="/scripts/index.js" defer></script>
+  <% } else { %>
+    <script src="/scripts/discussion/core.js" defer></script>
+    <script src="/scripts/discussion/participants.js" defer></script>
+    <script src="/scripts/discussion/messages.js" defer></script>
+    <script src="/scripts/discussion/poll.js" defer></script>
+    <script src="/scripts/discussion/votes.js" defer></script>
+  <% } %>
+</head>
+
+<body>
+  <%- include('../partials/_topbar') %>
+  <%- include('../partials/_profile_panel') %>
+
+  <main class="layout">
+    <%- include('../partials/_building_sidebar', { backLink: null }) %>
+
+    <div class="center-col">
+      <% if (mode === 'list') { %>
+        <%- include('../partials/_discussion_list') %>
+      <% } else { %>
+        <%- include('../partials/_discussion_detail') %>
+      <% } %>
+    </div>
+
+    <!-- rezervirano za kartu  -->
+    <div class="right-col"></div>
+  </main>
+</body>
+</html>
