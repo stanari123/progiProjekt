@@ -1,9 +1,9 @@
-
 * {
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   margin: 0;
   padding: 16px;
@@ -23,7 +23,6 @@ html, body {
   width: 100%;
   max-width: 420px;
 }
-
 
 .title-container {
   text-align: center;
@@ -59,7 +58,6 @@ html, body {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 
-
 .feedback {
   margin-top: 8px;
   min-height: 1.25em;
@@ -67,14 +65,18 @@ html, body {
   text-align: center;
 }
 
-.feedback .error {
+/* sad je .feedback.error, a ne .feedback .error */
+.feedback.error {
   color: #b91c1c;
 }
 
-.feedback .success {
+.feedback.success {
   color: #065f46;
 }
 
+.feedback.info {
+  color: #2563eb;
+}
 
 .btn {
   width: 100%;
@@ -98,12 +100,22 @@ html, body {
   cursor: not-allowed;
 }
 
+/* sekundarni gumb za toggle lozinke */
+.toggle-btn {
+  margin-top: 6px;
+  width: 100%;
+  background: #f3f4f6;
+  color: #065f46;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-weight: 500;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
 
-.meta {
-  margin-top: 12px;
-  font-size: 14px;
-  color: #6b7280;
-  text-align: center;
+.toggle-btn:hover {
+  background: #e5e7eb;
 }
 
 a {
@@ -113,9 +125,4 @@ a {
 
 a:hover {
   text-decoration: underline;
-}
-
-#togglePassword{
-  background-color: antiquewhite;
-  color:#065f46;
 }
