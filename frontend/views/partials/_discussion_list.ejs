@@ -1,0 +1,24 @@
+<section class="card">
+  <div class="card-header">
+    <h2>Rasprave</h2>
+    <button id="newDiscBtn" class="btn primary" style="display:none;">➕ Nova rasprava</button>
+  </div>
+
+  <form id="newDiscForm" style="display:none; margin:12px 0; border:1px solid #e5e7eb; padding:12px; border-radius:8px;">
+    <label>Naslov:<br />
+      <input id="newDiscTitle" type="text" style="width:100%; padding:6px;" required />
+    </label><br><br>
+    <label>Opis:<br />
+      <textarea id="newDiscBody" style="width:100%; min-height:60px;"></textarea>
+    </label><br><br>
+    <label><input id="newDiscPrivate" type="checkbox" /> Privatna rasprava</label><br><br>
+    <div class="flex" style="gap:8px;">
+      <button type="submit" class="btn primary">Spremi</button>
+      <button type="button" id="cancelDiscBtn" class="btn">Odustani</button>
+    </div>
+    <div id="newDiscMsg" class="muted" style="margin-top:6px;"></div>
+  </form>
+
+  <div id="discList"></div>
+  <div id="discFeedback" class="muted"></div>
+</section>
