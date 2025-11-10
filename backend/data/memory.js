@@ -1,34 +1,36 @@
+import { createClient } from "@supabase/supabase-js";
+import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
-import { nanoid } from "nanoid";
 
-export const db = {
-  users: [],
-  buildings: [],
-  memberships: [],
-  discussions: [],
-  discussionParticipants: [],
-  messages: [],
-  votes: [],
-};
+dotenv.config();
 
-function createBuilding(name, address) {
-  const b = { id: nanoid(), name, address };
-  db.buildings.push(b);
-  return b;
-}
+const supabaseUrl = process.env.SUPABASE_URL;
+if (!supabaseUrl) throw new Error("supabaseUrl is required.");
 
-async function createUser(email, role, password, firstName, lastName) {
-  const passHash = await bcrypt.hash(password, 10);
-  const user = { id: nanoid(), email, role, passHash, firstName, lastName };
-  db.users.push(user);
-  return user;
-}
+const supabaseKey = process.env.SUPABASE_KEY;
+if (!supabaseKey) throw new Error("supabaseKey is required.");
 
+export const db = createClient(supabaseUrl, supabaseKey);
 
 export async function seed() {
-  if (db.users.length) return;
-  await createUser("admin@demo.hr", "admin",       "admin123", "Admin", "A");
+    const { data, error } = await db
+        .from("app_user")
+        .select("*")
+        .eq("role", "admin")
+        .maybeSingle();
 
-  createBuilding("Zgrada A", "Ulica 1, Zagreb");
-  createBuilding("Zgrada B", "Ulica 2, Zagreb");
+    if (error) {
+        console.error("Error checking for admin user:", error);
+        return;
+    }
+
+    if (!data) {
+        const { insertError } = await db.from("app_user").insert({
+            first_name: "Admin",
+            last_name: "Demo",
+            email: "admin@demo.hr",
+            role: "admin",
+            password_hash: await bcrypt.hash("admin123", 10),
+        });
+    }
 }
