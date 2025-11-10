@@ -8,6 +8,7 @@ export async function assertBuilding(buildingId) {
         .select("*")
         .equal("id", buildingId)
         .single();
+
     if (!building) throw new AppError("Zgrada nije pronađena", 404);
 
     return building;
@@ -26,18 +27,18 @@ export async function userInBuilding(userId, buildingId) {
     return membership;
 }
 
-export function getBuildingForUser(buildingId, user) {
-    const building = assertBuilding(buildingId);
+export async function getBuildingForUser(buildingId, user) {
+    const building = await assertBuilding(buildingId);
 
-    if (user.role !== "admin" && !userInBuilding(user.id, buildingId)) {
-        throw new AppError("Zabranjen pristup zgradi", 403);
+    if (user.role !== "admin") {
+        await userInBuilding(user.id, buildingId);
     }
 
     return building;
 }
 
 export async function getRoleInBuilding(userId, buildingId) {
-    const userRole = await db
+    const { data: userRole } = await db
         .from("building_membership")
         .select("role")
         .equal("userId", userId)
@@ -50,8 +51,8 @@ export async function getRoleInBuilding(userId, buildingId) {
 export async function listMembers(buildingId, user) {
     const building = await assertBuilding(buildingId);
 
-    if (user.role !== "admin" && !userInBuilding(user, buildingId)) {
-        throw new AppError("Zabranjen pristup zgradi", 403);
+    if (user.role !== "admin") {
+        await userInBuilding(user.id, buildingId);
     }
 
     const memberships = await db
@@ -59,23 +60,30 @@ export async function listMembers(buildingId, user) {
         .select("*")
         .equal("buildingId", buildingId);
 
-    return memberships;
+    return memberships || [];
 }
 
 export async function listMyBuildings(user) {
-    if (user.role === "admin") return await db.from("building").select("*");
+    if (user && user.role === "admin") {
+        const { data: buildings } = await db.from("building").select("*");
+        return buildings || [];
+    }
 
-    const myIds = await db
+    if (!user) return [];
+
+    const { data: memberships } = await db
         .from("building_membership")
-        .select("buildingId")
-        .equal("userId", user.id);
+        .select("building_id")
+        .eq("user_id", user.id);
 
-    const uniq = new Set(myIds);
-    return await db
+    if (!memberships || memberships.length === 0) return [];
+
+    const buildingIds = memberships.map((m) => m.building_id);
+
+    const { data: buildings } = await db
         .from("building")
         .select("*")
-        .in(
-            "id",
-            Array.from(uniq).map((m) => m.buildingId)
-        );
+        .in("id", buildingIds);
+
+    return buildings || [];
 }
