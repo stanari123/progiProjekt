@@ -8,7 +8,7 @@ const router = Router();
 //lista zgrada
 router.get("/buildings", requireAuth, async (req, res, next) => {
     try {
-        return res.json(listMyBuildings(req.user));
+        return res.json(await listMyBuildings(req.user));
     } catch (err) {
         next(err);
     }

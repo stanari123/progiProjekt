@@ -24,7 +24,6 @@ export async function findUserByEmail(email = "") {
     if (!data) return null;
 
     return new User(
-        data.id,
         data.first_name,
         data.last_name,
         data.email,

@@ -18,9 +18,8 @@ router.post("/login", async (req, res, next) => {
 //podaci o prijavljenom korisniku
 router.get("/me", requireAuth, async (req, res, next) => {
     try {
-        return res.json(await getMe(req.user.sub));
+        return res.json(await getMe(req.user));
     } catch (err) {
-        console.log("buhr");
         next(err);
     }
 });

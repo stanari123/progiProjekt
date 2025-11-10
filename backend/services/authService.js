@@ -8,6 +8,7 @@ import { findUserByEmail } from "./adminService.js";
 export async function loginUser(email, password) {
     const user = await findUserByEmail(email);
 
+    console.log(user);
     if (!user) throw new AppError("Neispravni podaci", 401);
 
     const ok = await bcrypt.compare(password, user.password);
@@ -17,7 +18,6 @@ export async function loginUser(email, password) {
     return {
         token,
         user: {
-            id: user.id,
             email: user.email,
             role: user.role,
             firstName: user.firstName || "",
@@ -27,11 +27,11 @@ export async function loginUser(email, password) {
 }
 
 //info o aktivnom useru
-export async function getMe(userId) {
+export async function getMe(reqUser) {
     const { data: user } = await db
         .from("app_user")
         .select("*")
-        .eq("id", userId)
+        .eq("email", reqUser.email)
         .maybeSingle();
 
     if (!user) {
@@ -39,7 +39,6 @@ export async function getMe(userId) {
     }
 
     return {
-        id: user.id,
         email: user.email,
         role: user.role,
         firstName: user.first_name || "",
