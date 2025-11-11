@@ -32,19 +32,14 @@ export async function findUserByEmail(email = "") {
     );
 }
 
-async function addMembership(userId, buildingId, roleInBuilding) {
-    const membershipExists = await db
-        .from("building_membership")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("building_id", buildingId)
-        .single();
+async function addMembership(userId, buildingIds, role) {
+    // todo: check if building exists
 
-    if (!membershipExists) {
+    for (const buildingId of buildingIds) {
         await db.from("building_membership").insert({
-            building_id: buildingId,
             user_id: userId,
-            role: roleInBuilding,
+            building_id: buildingId,
+            user_role: role,
         });
     }
 }
@@ -57,8 +52,6 @@ export async function createUser(currentUser, newUser) {
     if (!newUser.email || !newUser.password) {
         throw new AppError("E-pošta i lozinka su obavezni.", 400);
     }
-
-    // TODO: dodati provjeru za stanara i zgradu u kojoj zivi
 
     const { data: existing } = await db
         .from("app_user")
@@ -80,13 +73,18 @@ export async function createUser(currentUser, newUser) {
         passHash
     );
 
-    const { data, error } = await db.from("app_user").insert({
-        first_name: user.firstName,
-        last_name: user.lastName,
-        email: user.email,
-        password_hash: user.password,
-        role: user.role,
-    });
+    const { data, error } = await db
+        .from("app_user")
+        .insert({
+            first_name: user.firstName,
+            last_name: user.lastName,
+            email: user.email,
+            password_hash: user.password,
+            role: user.role,
+        })
+        .select();
+
+    await addMembership(data[0].id, newUser.buildingIds, newUser.role);
 
     return user;
 }
