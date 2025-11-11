@@ -45,3 +45,40 @@ export async function getMe(reqUser) {
         lastName: user.last_name || "",
     };
 }
+
+// google login
+export async function loginWithGoogleProfile(googleUser) {
+  if (!googleUser || !googleUser.email) {
+    throw new AppError("Nedostaje email iz Google profila", 400);
+  }
+
+  const email = googleUser.email.toLowerCase();
+
+  //googleStrategy je handleao da postoji
+  const { data: user, error } = await db
+    .from("app_user")
+    .select("id, email, role, first_name, last_name")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (error || !user) {
+    throw new AppError("Korisnik nije pronađen nakon Google prijave", 404);
+  }
+
+  const token = issueToken({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+  });
+
+  return {
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      firstName: user.first_name || "",
+      lastName: user.last_name || "",
+    },
+  };
+}
