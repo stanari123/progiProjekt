@@ -2,57 +2,107 @@ import { db } from "../data/memory.js";
 import { AppError } from "../utils/AppError.js";
 
 //helpers
-export function assertBuilding(buildingId) {
-  const b = db.buildings.find((x) => x.id === buildingId);
-  if (!b) throw new AppError("Zgrada nije pronađena", 404);
-  return b;
-}
-export function userInBuilding(userId, buildingId) {
-  return db.memberships.some(
-    (m) => m.userId === userId && m.buildingId === buildingId
-  );
-}
-export function getBuildingForUser(buildingId, user) {
-  const b = assertBuilding(buildingId);
-  if (user.role !== "admin" && !userInBuilding(user.sub, buildingId)) {
-    throw new AppError("Zabranjen pristup zgradi", 403);
-  }
-  return b;
-}
-export function getRoleInBuilding(userId, buildingId) {
-  const m = db.memberships.find(
-    (x) => x.userId === userId && x.buildingId === buildingId
-  );
-  return m?.roleInBuilding || null;
+export async function assertBuilding(buildingId) {
+    const building = await db
+        .from("building")
+        .select("*")
+        .equal("id", buildingId)
+        .single();
+
+    if (!building) throw new AppError("Zgrada nije pronađena", 404);
+
+    return building;
 }
 
-/**/
-export function listMembers(buildingId, user) {
-  assertBuilding(buildingId);
-  if (user.role !== "admin" && !userInBuilding(user.sub, buildingId)) {
-    throw new AppError("Zabranjen pristup zgradi", 403);
-  }
+export async function userInBuilding(userId, buildingId) {
+    const { data: membership } = await db
+        .from("building_membership")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("building_id", buildingId)
+        .single();
 
-  const ms = db.memberships.filter((m) => m.buildingId === buildingId);
-  return ms.map((m) => {
-    const u = db.users.find((x) => x.id === m.userId) || {};
-    return {
-      userId: m.userId,
-      roleInBuilding: m.roleInBuilding || u.role || "suvlasnik",
-      firstName: u.firstName || "",
-      lastName: u.lastName || "",
-      email: u.email || "",
-    };
-  });
-}
-export function listMyBuildings(user) {
-  if (user.role === "admin") return db.buildings;
-
-  const myIds = db.memberships
-    .filter((m) => m.userId === user.sub)
-    .map((m) => m.buildingId);
-
-  const uniq = new Set(myIds);
-  return db.buildings.filter((b) => uniq.has(b.id));
+    if (!membership) throw new AppError("Korisnik nije član zgrade!", 403);
+    return membership;
 }
 
+export async function getBuildingForUser(buildingId, user) {
+    const building = await assertBuilding(buildingId);
+
+    if (user.role !== "admin") {
+        await userInBuilding(user.id, buildingId);
+    }
+
+    return building;
+}
+
+export async function getRoleInBuilding(userId, buildingId) {
+    const { data: userRole } = await db
+        .from("building_membership")
+        .select("role")
+        .equal("userId", userId)
+        .equal("buildingId", buildingId)
+        .single();
+
+    return userRole;
+}
+
+export async function listMembers(buildingId, user) {
+    const memberships = await db
+        .from("building_membership")
+        .select("*")
+        .eq("building_id", buildingId);
+
+    const userArr = [];
+
+    for (const membership of memberships.data) {
+        let userId = membership.user_id;
+
+        let userInfo = await db
+            .from("app_user")
+            .select("first_name, last_name")
+            .eq("id", userId)
+            .single();
+
+        if (userInfo.data) {
+            userArr.push({
+                firstName: userInfo.data.first_name,
+                lastName: userInfo.data.last_name,
+                roleInBuilding: membership.user_role,
+            });
+        }
+    }
+
+    return userArr || [];
+}
+
+export async function listMyBuildings(user) {
+    if (user && user.role === "admin") {
+        const { data: buildings } = await db.from("building").select("*");
+        return buildings || [];
+    }
+
+    if (!user) return [];
+
+    const { data: userRecord } = await db
+        .from("app_user")
+        .select("*")
+        .eq("email", user.email)
+        .single();
+
+    const { data: memberships } = await db
+        .from("building_membership")
+        .select("building_id")
+        .eq("user_id", userRecord.id);
+
+    if (!memberships || memberships.length === 0) return [];
+
+    const buildingIds = memberships.map((m) => m.building_id);
+
+    const { data: buildings } = await db
+        .from("building")
+        .select("*")
+        .in("id", buildingIds);
+
+    return buildings || [];
+}

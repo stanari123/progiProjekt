@@ -1,71 +1,89 @@
 import bcrypt from "bcryptjs";
-import { nanoid } from "nanoid";
 import { db } from "../data/memory.js";
 import { AppError } from "../utils/AppError.js";
 
-function findUserByEmail(email = "") {
-  const lower = email.toLowerCase();
-  return db.users.find((u) => u.email.toLowerCase() === lower);
-}
-function addMembership(userId, buildingId, roleInBuilding) {
-  const exists = db.memberships.some(
-    (m) => m.userId === userId && m.buildingId === buildingId
-  );
-  if (!exists) {
-    db.memberships.push({ userId, buildingId, roleInBuilding });
-  }
-}
-
-export async function createUser(currentUser, payload) {
-  if (!currentUser || (currentUser.role || "").toLowerCase() !== "admin") {
-    throw new AppError("Samo admin može kreirati korisnike.", 403);
-  }
-
-  const {
-    firstName = "",
-    lastName = "",
-    email,
-    password,
-    role = "suvlasnik",
-    buildingIds = [],
-  } = payload || {};
-
-  if (!email || !password) {
-    throw new AppError("E-pošta i lozinka su obavezni.", 400);
-  }
-
-  const existing = findUserByEmail(email);
-  if (existing) {
-    throw new AppError("Korisnik s tom e-poštom već postoji.", 409);
-  }
-
-  const passHash = await bcrypt.hash(password, 10);
-
-  const user = {
-    id: nanoid(),
-    email,
-    role,
-    passHash,
-    firstName,
-    lastName,
-  };
-
-  db.users.push(user);
-
-  if (Array.isArray(buildingIds)) {
-    for (const bId of buildingIds) {
-      if (!bId) continue;
-      const existsBuilding = db.buildings.some((b) => b.id === bId);
-      if (!existsBuilding) continue;
-      addMembership(user.id, bId, user.role);
+export class User {
+    constructor(firstName, lastName, email, role, password) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.email = email;
+        this.role = role;
+        this.password = password;
     }
-  }
+}
 
-  return {
-    id: user.id,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    email: user.email,
-    role: user.role,
-  };
+export async function findUserByEmail(email = "") {
+    const lowercaseEmail = email.toLowerCase();
+    const { data, error } = await db
+        .from("app_user")
+        .select("*")
+        .eq("email", lowercaseEmail)
+        .single();
+
+    if (!data) return null;
+
+    return new User(
+        data.first_name,
+        data.last_name,
+        data.email,
+        data.role,
+        data.password_hash
+    );
+}
+
+async function addMembership(userId, buildingIds, role) {
+    // todo: check if building exists
+
+    for (const buildingId of buildingIds) {
+        await db.from("building_membership").insert({
+            user_id: userId,
+            building_id: buildingId,
+            user_role: role,
+        });
+    }
+}
+
+export async function createUser(currentUser, newUser) {
+    if (!currentUser || (currentUser.role || "").toLowerCase() !== "admin") {
+        throw new AppError("Samo admin može kreirati korisnike.", 403);
+    }
+
+    if (!newUser.email || !newUser.password) {
+        throw new AppError("E-pošta i lozinka su obavezni.", 400);
+    }
+
+    const { data: existing } = await db
+        .from("app_user")
+        .select("*")
+        .eq("email", newUser.email)
+        .single();
+
+    if (existing) {
+        console.log("User with this email already exists:", existing);
+        throw new AppError("Korisnik s tom e-poštom već postoji.", 409);
+    }
+
+    const passHash = await bcrypt.hash(newUser.password, 10);
+    const user = new User(
+        newUser.firstName,
+        newUser.lastName,
+        newUser.email,
+        newUser.role,
+        passHash
+    );
+
+    const { data, error } = await db
+        .from("app_user")
+        .insert({
+            first_name: user.firstName,
+            last_name: user.lastName,
+            email: user.email,
+            password_hash: user.password,
+            role: user.role,
+        })
+        .select();
+
+    await addMembership(data[0].id, newUser.buildingIds, newUser.role);
+
+    return user;
 }

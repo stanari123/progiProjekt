@@ -7,21 +7,21 @@ const router = Router();
 
 //lista zgrada
 router.get("/buildings", requireAuth, async (req, res, next) => {
-  try {
-    return res.json(listMyBuildings(req.user));
-  } catch (err) {
-    next(err);
-  }
+    try {
+        return res.json(await listMyBuildings(req.user));
+    } catch (err) {
+        next(err);
+    }
 });
 
 //kreiranje novih usera
 router.post("/users", requireAuth, async (req, res, next) => {
-  try {
-    const newUser = await createUser(req.user, req.body);
-    return res.status(201).json(newUser);
-  } catch (err) {
-    next(err);
-  }
+    try {
+        const newUser = await createUser(req.user, req.body);
+        return res.status(201).json(newUser);
+    } catch (err) {
+        next(err);
+    }
 });
 
 export default router;
