@@ -35,6 +35,8 @@
     "object-assign": "^4.1.1",
     "on-finished": "^2.3.0",
     "on-headers": "^1.1.0",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
     "pg": "^8.16.3",
     "postgres": "^3.4.7",
     "safe-buffer": "^5.2.1",

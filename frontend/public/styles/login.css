@@ -127,3 +127,21 @@ a {
 a:hover {
     text-decoration: underline;
 }
+
+.google-login {
+  text-align: center;
+  margin-top: 12px;
+}
+
+.google-link {
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.google-link:hover {
+  color: #1e40af;
+  text-decoration: underline;
+}

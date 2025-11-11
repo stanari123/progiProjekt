@@ -43,7 +43,6 @@ if (form) {
 
     setFeedback("info", "Prijava...");
 
-    // opciono: disable button dok traje fetch
     if (submitBtn) submitBtn.disabled = true;
 
     try {
@@ -80,4 +79,23 @@ if (form) {
       if (submitBtn) submitBtn.disabled = false;
     }
   });
+}
+
+const params = new URLSearchParams(window.location.search);
+const googleToken = params.get("token");
+if (googleToken) {
+  localStorage.setItem("token", googleToken);
+
+  try {
+    const payload = JSON.parse(atob(googleToken.split(".")[1]));
+    const role = (payload.role || "").toLowerCase();
+
+    if (role === "admin") {
+      window.location.href = "/admin";
+    } else {
+      window.location.href = "/";
+    }
+  } catch {
+    window.location.href = "/";
+  }
 }

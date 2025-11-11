@@ -9,6 +9,7 @@ import { fileURLToPath } from "url";
 
 import { seed } from "./data/memory.js";
 import authRouter from "./routes/auth.js";
+import oauthRouter from "./routes/oauth.js";
 import discussionsRouter from "./routes/discussions.js";
 import discussionDetailRouter from "./routes/discussionDetail.js";
 import pollRouter from "./routes/poll.js";
@@ -36,6 +37,12 @@ app.use("/api/discussions", messagesRouter);
 app.use("/api/discussions", votesRouter);
 app.use("/api/buildings", buildingsRouter);
 app.use("/api/admin", adminRouter);
+
+import passport from "passport";
+import "./auth/googleStrategy.js";
+
+app.use(passport.initialize());
+app.use("/auth", oauthRouter);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
