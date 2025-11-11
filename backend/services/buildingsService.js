@@ -1,4 +1,3 @@
-import first from "ee-first";
 import { db } from "../data/memory.js";
 import { AppError } from "../utils/AppError.js";
 
@@ -19,12 +18,11 @@ export async function userInBuilding(userId, buildingId) {
     const { data: membership } = await db
         .from("building_membership")
         .select("*")
-        .equal("userId", userId)
-        .equal("buildingId", buildingId)
+        .eq("user_id", userId)
+        .eq("building_id", buildingId)
         .single();
 
     if (!membership) throw new AppError("Korisnik nije član zgrade!", 403);
-
     return membership;
 }
 
@@ -86,10 +84,16 @@ export async function listMyBuildings(user) {
 
     if (!user) return [];
 
+    const { data: userRecord } = await db
+        .from("app_user")
+        .select("*")
+        .eq("email", user.email)
+        .single();
+
     const { data: memberships } = await db
         .from("building_membership")
         .select("building_id")
-        .eq("user_id", user.id);
+        .eq("user_id", userRecord.id);
 
     if (!memberships || memberships.length === 0) return [];
 
