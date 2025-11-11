@@ -71,6 +71,7 @@ body {
     border: 1px solid #e5e7eb;
     background: #f9fafb;
     cursor: pointer;
+    color: black;
 }
 .btn.primary {
     background: #2563eb;

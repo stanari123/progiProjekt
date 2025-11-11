@@ -1,6 +1,5 @@
 import { db } from "../data/memory.js";
 import { AppError } from "../utils/AppError.js";
-import { nanoid } from "nanoid";
 import { userInBuilding } from "./buildingsService.js";
 
 // helpers
@@ -27,6 +26,7 @@ export function userCanAccessDiscussion(discussion, authUser) {
 
 export async function assertDiscussion(id) {
     const getDiscussion = await db.from("discussion").select("*").eq("id", id);
+
     if (!getDiscussion) throw new AppError("Diskusija nije pronađena", 404);
     return getDiscussion;
 }
@@ -52,7 +52,16 @@ export async function listDiscussions(authUser, buildingId) {
         .select("*")
         .eq("building_id", buildingId);
 
-    console.log("Dohvaćene diskusije:", discussionsArray.data);
+    for (const discussion of discussionsArray.data) {
+        const owner = await db
+            .from("app_user")
+            .select("*")
+            .eq("id", discussion.owner_id)
+            .single();
+
+        discussion.ownerName =
+            owner.data.first_name + " " + owner.data.last_name;
+    }
 
     return discussionsArray.data;
 }
@@ -67,18 +76,15 @@ export async function createDiscussion(
     if (!title) throw new AppError("Naslov je obavezan", 400);
     if (!buildingId) throw new AppError("buildingId je obavezan", 400);
 
-    if (
-        authUser.role !== "admin" &&
-        !userInBuilding(authUser.sub, buildingId)
-    ) {
-        throw new AppError("Zabranjen pristup zgradi", 403);
-    }
-
     const { data: userId } = await db
         .from("app_user")
         .select("id")
         .eq("email", authUser.email)
         .single();
+
+    if (authUser.role !== "admin" && !userInBuilding(userId.id, buildingId)) {
+        throw new AppError("Zabranjen pristup zgradi", 403);
+    }
 
     const newDiscussion = await db.from("discussion").insert({
         title: title,
@@ -88,4 +94,6 @@ export async function createDiscussion(
         status: "otvoreno",
         poll_description: body,
     });
+
+    return newDiscussion.data;
 }
