@@ -1,3 +1,4 @@
+import first from "ee-first";
 import { db } from "../data/memory.js";
 import { AppError } from "../utils/AppError.js";
 
@@ -49,18 +50,32 @@ export async function getRoleInBuilding(userId, buildingId) {
 }
 
 export async function listMembers(buildingId, user) {
-    const building = await assertBuilding(buildingId);
-
-    if (user.role !== "admin") {
-        await userInBuilding(user.id, buildingId);
-    }
-
     const memberships = await db
         .from("building_membership")
         .select("*")
-        .equal("buildingId", buildingId);
+        .eq("building_id", buildingId);
 
-    return memberships || [];
+    const userArr = [];
+
+    for (const membership of memberships.data) {
+        let userId = membership.user_id;
+
+        let userInfo = await db
+            .from("app_user")
+            .select("first_name, last_name")
+            .eq("id", userId)
+            .single();
+
+        if (userInfo.data) {
+            userArr.push({
+                firstName: userInfo.data.first_name,
+                lastName: userInfo.data.last_name,
+                roleInBuilding: membership.user_role,
+            });
+        }
+    }
+
+    return userArr || [];
 }
 
 export async function listMyBuildings(user) {
