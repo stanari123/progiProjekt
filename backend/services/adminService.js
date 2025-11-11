@@ -1,5 +1,4 @@
 import bcrypt from "bcryptjs";
-import { nanoid } from "nanoid";
 import { db } from "../data/memory.js";
 import { AppError } from "../utils/AppError.js";
 
