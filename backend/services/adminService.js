@@ -59,7 +59,6 @@ export async function createUser(currentUser, newUser) {
         .single();
 
     if (existing) {
-        console.log("User with this email already exists:", existing);
         throw new AppError("Korisnik s tom e-poštom već postoji.", 409);
     }
 
