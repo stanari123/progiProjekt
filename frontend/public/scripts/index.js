@@ -109,9 +109,9 @@ async function loadDiscussionsFor(buildingId) {
                 card.style.cursor = "not-allowed";
                 return;
             }
-            card.addEventListener("click", () => {
-                window.location.href = `/discussions/${id}`;
-            });
+            //card.addEventListener("click", () => {
+            //    window.location.href = `/discussions/${id}`;
+            //});
         });
     } catch (err) {
         console.error(err);
