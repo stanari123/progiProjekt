@@ -80,18 +80,16 @@ Voditelj tima: [Vinko Šapina](https://github.com/vinkosapina)
 
 ![Use Case Diagram](images/use_case_diagram.png)
 
-> Preporučeno: koristiti draw.io ili PlantUML za generiranje dijagrama.
 
-### 6.2 Class dijagram
+### Class dijagram
 
 ![Class Diagram](images/class_diagram.png)
 
-> Dijagram prikazuje glavne klase: **User**, **Discussion**, **Vote**, **Meeting**, **Administrator**.  
 
 
-### 6.3 Dijagram baze podataka
+### Dijagram baze podataka
 
-![Database Schema](supbase/database_scheme.png)
+![Database Schema](supabase/database_scheme.png)
 
 
 
