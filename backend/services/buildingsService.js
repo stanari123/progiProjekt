@@ -40,8 +40,8 @@ export async function getRoleInBuilding(userId, buildingId) {
     const { data: userRole } = await db
         .from("building_membership")
         .select("role")
-        .equal("userId", userId)
-        .equal("buildingId", buildingId)
+        .eq("userId", userId)
+        .eq("buildingId", buildingId)
         .single();
 
     return userRole;
