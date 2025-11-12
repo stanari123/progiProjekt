@@ -19,9 +19,19 @@ Kako mnogi od nas žive u zgradama ili studentskim domovima, znamo da je teško 
 	- kreiranje suvlasnika i predstavnika suvlasnika
 - registracija i prijava preko servisa za autentifikaciju
 
+
+
+
 # Tehnologije
 
 NodeJS, Express, HTML, CSS, JavaScript, EJS
+
+- **Backend:** NodeJS, Express  
+- **Frontend:** HTML, CSS, JavaScript, EJS  
+- **Baza podataka:** placeholder  
+- **Autentikacija:** OAuth 2.0  
+- **Deployment:** Azure
+- 
 
 > Podložno dodatcima i promjenama.
 
@@ -40,6 +50,59 @@ Backend:
 - [Jakov Svalina](https://github.com/svalinovich)
 
 Voditelj tima: [Vinko Šapina](https://github.com/vinkosapina)
+
+
+
+#Specifikacija zahtjeva
+
+### Dionici
+- **Administrator aplikacije**  
+- **Predstavnik suvlasnika**  
+- **Suvlasnici**
+
+### Funkcionalnosti
+- Iniciranje javne i privatne diskusije.  
+- Dodavanje suvlasnika u diskusiju.  
+- Pokretanje glasanja unutar diskusije.  
+- Integracija sa StanPlan serverom za kreiranje sastanaka.  
+- Serversko sučelje za dohvat lista diskusija s pozitivnim ishodom glasanja.  
+
+### Primjeri Use Case scenarija
+1. Suvlasnik pokreće diskusiju → dodaje sudionike → šalje obavijesti.  
+2. Inicijator pokreće glasanje → sudionici glasaju → kreira se poziv na sastanak.  
+3. Administrator kreira korisnike i dodjeljuje prava.  
+
+
+
+## dijagrami
+
+### Use Case dijagram
+
+![Use Case Diagram](images/use_case_diagram.png)
+
+> Preporučeno: koristiti draw.io ili PlantUML za generiranje dijagrama.
+
+### 6.2 Class dijagram
+
+![Class Diagram](images/class_diagram.png)
+
+> Dijagram prikazuje glavne klase: **User**, **Discussion**, **Vote**, **Meeting**, **Administrator**.  
+
+
+### 6.3 Dijagram baze podataka
+
+![Database Diagram](progi\progiProjekt\supabase\database_scheme.png)
+
+
+
+
+
+
+
+
+
+
+
 
 # 📝 Licenca
 
