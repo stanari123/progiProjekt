@@ -8,7 +8,6 @@ import { findUserByEmail } from "./adminService.js";
 export async function loginUser(email, password) {
     const user = await findUserByEmail(email);
 
-    console.log(user);
     if (!user) throw new AppError("Neispravni podaci", 401);
 
     const ok = await bcrypt.compare(password, user.password);
