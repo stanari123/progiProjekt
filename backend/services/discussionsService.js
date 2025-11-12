@@ -78,7 +78,7 @@ export async function createDiscussion(
 
     const { data: userId } = await db
         .from("app_user")
-        .select("id")
+        .select("*")
         .eq("email", authUser.email)
         .single();
 
