@@ -6,7 +6,7 @@ export async function assertBuilding(buildingId) {
     const building = await db
         .from("building")
         .select("*")
-        .equal("id", buildingId)
+        .eq("id", buildingId)
         .single();
 
     if (!building) throw new AppError("Zgrada nije pronađena", 404);
@@ -102,7 +102,7 @@ export async function listMyBuildings(user) {
     const { data: buildings } = await db
         .from("building")
         .select("*")
-        .in("id", buildingIds);
+        .eq("id", buildingIds);
 
     return buildings || [];
 }
