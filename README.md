@@ -28,7 +28,7 @@ NodeJS, Express, HTML, CSS, JavaScript, EJS
 
 - **Backend:** NodeJS, Express  
 - **Frontend:** HTML, CSS, JavaScript, EJS  
-- **Baza podataka:** placeholder  
+- **Baza podataka:** PostgreSQL  
 - **Autentikacija:** OAuth 2.0  
 - **Deployment:** Azure
 - 
@@ -53,7 +53,9 @@ Voditelj tima: [Vinko Šapina](https://github.com/vinkosapina)
 
 
 
-#Specifikacija zahtjeva
+
+
+# Specifikacija zahtjeva
 
 ### Dionici
 - **Administrator aplikacije**  
@@ -67,23 +69,37 @@ Voditelj tima: [Vinko Šapina](https://github.com/vinkosapina)
 - Integracija sa StanPlan serverom za kreiranje sastanaka.  
 - Serversko sučelje za dohvat lista diskusija s pozitivnim ishodom glasanja.  
 
-### Primjeri Use Case scenarija
-1. Suvlasnik pokreće diskusiju → dodaje sudionike → šalje obavijesti.  
-2. Inicijator pokreće glasanje → sudionici glasaju → kreira se poziv na sastanak.  
-3. Administrator kreira korisnike i dodjeljuje prava.  
 
 
-
-## dijagrami
+## Dijagrami
 
 ### Use Case dijagram
 
-![Use Case Diagram](images/use_case_diagram.png)
+![Use Case Diagram](images/usecase_uml_stanblog.png)
 
 
 ### Class dijagram
 
 ![Class Diagram](images/class_diagram.png)
+
+
+
+
+## Organizacija sustava
+
+Arhitektura je podijeljena na tri logička sloja: Backend, Frontend i Sloj podataka (Supabase).
+
+### Glavne Komponente Sustava
+
+| Komponenta | Opis uloge | Tehnologija/Jezik | Ključne putanje/Datoteke |
+| :--- | :--- | :--- | :--- |
+| **Backend (API Server)** | Sloj aplikacije. Implementira poslovnu logiku i izlaže API rute. Koristi *middleware* za autorizaciju i validaciju. | Node.js / Express  | `backend/server.js`, `backend/routes`, `backend/services`, `backend/middleware` |
+| **Servisi (Services)** | Podkomponenta Backenda. Sadrži čistu poslovnu logiku i obavlja komunikaciju sa Slojem podataka. | Node.js (JavaScript) | `backend/services` |
+| **Rutiranje (Routes)** | Podkomponenta Backenda. Definira sve API putanje (endpoints) i prosljeđuje zahtjeve odgovarajućim servisima. | Node.js (JavaScript) | `backend/routes` |
+| **Frontend (View Layer)** | Sloj prezentacije. Odgovoran za generiranje HTML-a i prikaz korisničkog sučelja. | EJS (Embedded JS)  | `frontend/views`, `frontend/public` |
+| **Sloj podataka** | Upravljanje trajnim skladištenjem podataka i shemom baze. | Supabase (PostgreSQL) | `supabase/migrations` |
+
+
 
 
 
