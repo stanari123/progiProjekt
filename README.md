@@ -91,7 +91,7 @@ Voditelj tima: [Vinko Šapina](https://github.com/vinkosapina)
 
 ### 6.3 Dijagram baze podataka
 
-![Database Diagram](progi\progiProjekt\supabase\database_scheme.png)
+![Database Schema](supbase/database_scheme.png)
 
 
 
