@@ -102,7 +102,7 @@ export async function listMyBuildings(user) {
     const { data: buildings } = await db
         .from("building")
         .select("*")
-        .eq("id", buildingIds);
+        .in("id", buildingIds);
 
     return buildings || [];
 }
