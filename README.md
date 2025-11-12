@@ -24,7 +24,6 @@ Kako mnogi od nas žive u zgradama ili studentskim domovima, znamo da je teško 
 
 # Tehnologije
 
-NodeJS, Express, HTML, CSS, JavaScript, EJS
 
 - **Backend:** NodeJS, Express  
 - **Frontend:** HTML, CSS, JavaScript, EJS  
@@ -33,7 +32,7 @@ NodeJS, Express, HTML, CSS, JavaScript, EJS
 - **Deployment:** Azure
 - 
 
-> Podložno dodatcima i promjenama.
+
 
 # Članovi tima
 
@@ -78,11 +77,9 @@ Voditelj tima: [Vinko Šapina](https://github.com/vinkosapina)
 ![Use Case Diagram](images/usecase_uml_stanblog.png)
 
 
-### Class dijagram
+### Sekvencijski dijagram programa
 
-![Class Diagram](images/class_diagram.png)
-
-
+![Class Diagram](images/sekv_uml_stanblog.png)
 
 
 ## Organizacija sustava
@@ -100,20 +97,9 @@ Arhitektura je podijeljena na tri logička sloja: Backend, Frontend i Sloj podat
 | **Sloj podataka** | Upravljanje trajnim skladištenjem podataka i shemom baze. | Supabase (PostgreSQL) | `supabase/migrations` |
 
 
-
-
-
-### Dijagram baze podataka
+### Class dijagram
 
 ![Database Schema](supabase/database_scheme.png)
-
-
-
-
-
-
-
-
 
 
 
