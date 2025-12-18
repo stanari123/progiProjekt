@@ -28,9 +28,7 @@ async function loadDiscussionsFor(buildingId) {
 
     try {
         const res = await fetch(
-            `${window.API_BASE}/discussions?buildingId=${encodeURIComponent(
-                buildingId
-            )}`,
+            `${window.API_BASE}/discussions?buildingId=${encodeURIComponent(buildingId)}`,
             {
                 headers: { Authorization: "Bearer " + token },
             }
@@ -38,8 +36,7 @@ async function loadDiscussionsFor(buildingId) {
         const data = await res.json().catch(() => []);
 
         if (!res.ok) {
-            discFeedback.textContent =
-                data?.error || "Greška pri dohvaćanju rasprava.";
+            discFeedback.textContent = data?.error || "Greška pri dohvaćanju rasprava.";
             return;
         }
 
@@ -80,11 +77,7 @@ async function loadDiscussionsFor(buildingId) {
             }
             <div class="muted">
               ${window.escapeHtml(d.ownerName || d.ownerEmail || "#" + d.id)}
-              ${
-                  d.createdAt
-                      ? " · " + new Date(d.createdAt).toLocaleString()
-                      : ""
-              }
+              ${d.createdAt ? " · " + new Date(d.createdAt).toLocaleString() : ""}
               ${d.status ? " · " + d.status.toUpperCase() : ""}
               ${d.isPrivate ? " · 🔒 Privatna" : ""}
             </div>
@@ -109,9 +102,9 @@ async function loadDiscussionsFor(buildingId) {
                 card.style.cursor = "not-allowed";
                 return;
             }
-            //card.addEventListener("click", () => {
-            //    window.location.href = `/discussions/${id}`;
-            //});
+            card.addEventListener("click", () => {
+                window.location.href = `/discussions/${id}`;
+            });
         });
     } catch (err) {
         console.error(err);
@@ -167,8 +160,7 @@ newDiscForm?.addEventListener("submit", async (e) => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
             if (newDiscMsg)
-                newDiscMsg.textContent =
-                    data.error || "Greška pri stvaranju rasprave.";
+                newDiscMsg.textContent = data.error || "Greška pri stvaranju rasprave.";
             return;
         }
 

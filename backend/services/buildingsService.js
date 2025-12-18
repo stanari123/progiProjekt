@@ -3,11 +3,7 @@ import { AppError } from "../utils/AppError.js";
 
 //helpers
 export async function assertBuilding(buildingId) {
-    const building = await db
-        .from("building")
-        .select("*")
-        .eq("id", buildingId)
-        .single();
+    const building = await db.from("building").select("*").eq("id", buildingId).single();
 
     if (!building) throw new AppError("Zgrada nije pronađena", 404);
 

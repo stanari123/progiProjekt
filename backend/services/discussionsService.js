@@ -40,10 +40,7 @@ export async function listDiscussions(authUser, buildingId) {
         .eq("email", authUser.email)
         .single();
 
-    if (
-        authUser.role !== "admin" &&
-        !userInBuilding(userRecord.id, buildingId)
-    ) {
+    if (authUser.role !== "admin" && !userInBuilding(userRecord.id, buildingId)) {
         throw new AppError("Zabranjen pristup zgradi", 403);
     }
 
@@ -59,8 +56,7 @@ export async function listDiscussions(authUser, buildingId) {
             .eq("id", discussion.owner_id)
             .single();
 
-        discussion.ownerName =
-            owner.data.first_name + " " + owner.data.last_name;
+        discussion.ownerName = owner.data.first_name + " " + owner.data.last_name;
     }
 
     return discussionsArray.data;
