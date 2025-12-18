@@ -24,7 +24,7 @@ export async function getDiscussionById(id, authUser) {
 
     const canViewContent = userCanAccessDiscussion(d, authUser);
 
-    const owner = await db.from("app_user").select("*").where("id", d.ownerId).first();
+    const owner = await db.from("app_user").select("*").eq("user_id", d.ownerId);
     // const owner = db.users.find((u) => u.id === d.ownerId);
     const ownerName = d.ownerName || buildDisplayName(owner);
 
@@ -33,13 +33,12 @@ export async function getDiscussionById(id, authUser) {
         participants = await db
             .from("discussion_participant")
             .select("*")
-            .where("discussion_id", d.id);
+            .eq("discussion_id", d.id);
         for (let i = 0; i < participants.length; i++) {
             const u = await db
                 .from("app_user")
                 .select("*")
-                .where("id", participants[i].userId)
-                .first();
+                .eq("id", participants[i].userId);
 
             participants[i] = {
                 userId: participants[i].user_id,
@@ -148,12 +147,12 @@ export async function setDiscussionParticipants(discussionId, authUser, particip
     let discussionParticipants = await db
         .from("discussion_participant")
         .select("*")
-        .where("discussion_id", discussionId);
+        .eq("discussion_id", discussionId);
 
     for (const userId of list) {
         // const u = db.users.find((x) => x.id === userId);
 
-        const u = await db.from("app_user").select("*").where("id", user_id).first();
+        const u = await db.from("app_user").select("*").eq("id", user_id);
 
         if (u && u.role === "admin") {
             continue;
@@ -185,7 +184,7 @@ export async function setDiscussionParticipants(discussionId, authUser, particip
         participants: await db
             .from("discussion_participant")
             .select("*")
-            .where("discussion_id", discussionId)
+            .eq("discussion_id", discussionId)
             .then((rows) =>
                 rows.map((p) => ({ userId: p.user_id, canPost: p.can_post }))
             ),
