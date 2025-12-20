@@ -11,12 +11,12 @@ export async function assertBuilding(buildingId) {
 }
 
 export async function userInBuilding(userId, buildingId) {
-    const { data: membership } = await db
+    console.log("Checking if user", userId, "is in building", buildingId);
+    const membership = await db
         .from("building_membership")
         .select("*")
         .eq("user_id", userId)
-        .eq("building_id", buildingId)
-        .single();
+        .eq("building_id", buildingId);
 
     if (!membership) throw new AppError("Korisnik nije član zgrade!", 403);
     return membership;

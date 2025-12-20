@@ -11,16 +11,24 @@ export function buildDisplayName(user) {
     return user.email || "(nepoznat)";
 }
 
-export function userCanAccessDiscussion(discussion, authUser) {
+export async function userCanAccessDiscussion(discussion, authUser) {
+    let { data: user } = await db
+        .from("app_user")
+        .select("*")
+        .eq("email", authUser.email);
+
     if (!discussion.isPrivate) return true;
 
     if (authUser.role === "admin") return true;
 
-    if (discussion.ownerId === authUser.sub) return true;
+    if (discussion.ownerId === user.id) return true;
 
-    const isParticipant = db.discussionParticipants.some(
-        (p) => p.discussionId === discussion.id && p.userId === authUser.sub
-    );
+    let { data: isParticipant } = await db
+        .from("discussion_participant")
+        .select("*")
+        .eq("discussion_id", discussion.id)
+        .eq("user_id", user.id);
+
     return isParticipant;
 }
 

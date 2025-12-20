@@ -11,8 +11,6 @@ import {
 export async function getDiscussionById(id, authUser) {
     const d = assertDiscussion(id);
 
-    console.log(authUser);
-
     if (authUser.role !== "admin" && !userInBuilding(authUser.sub, d.buildingId)) {
         throw new AppError("Zabranjen pristup diskusiji", 403);
     }
