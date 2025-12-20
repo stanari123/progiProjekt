@@ -3,7 +3,11 @@ import { AppError } from "../utils/AppError.js";
 
 //helpers
 export async function assertBuilding(buildingId) {
-    const building = await db.from("building").select("*").eq("id", buildingId).single();
+    const { data: building } = await db
+        .from("building")
+        .select("*")
+        .eq("id", buildingId)
+        .single();
 
     if (!building) throw new AppError("Zgrada nije pronađena", 404);
 
@@ -11,7 +15,7 @@ export async function assertBuilding(buildingId) {
 }
 
 export async function userInBuilding(userId, buildingId) {
-    console.log("Checking if user", userId, "is in building", buildingId);
+    // console.log("Checking if user", userId, "is in building", buildingId);
     const membership = await db
         .from("building_membership")
         .select("*")

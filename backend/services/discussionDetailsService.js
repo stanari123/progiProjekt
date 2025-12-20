@@ -9,25 +9,35 @@ import {
 } from "./discussionsService.js";
 
 export async function getDiscussionById(id, authUser) {
-    const d = assertDiscussion(id);
+    const d = await assertDiscussion(id);
 
-    if (authUser.role !== "admin" && !userInBuilding(authUser.sub, d.buildingId)) {
+    console.log("Discussion:", d);
+    const activePoll = getActivePoll(d.id);
+    // console.log("authUser:", authUser);
+
+    const { data: user } = await db
+        .from("app_user")
+        .select("*")
+        .eq("email", authUser.email);
+
+    // console.log("user:", user);
+
+    if (authUser.role !== "admin" && !userInBuilding(user.id, d.buildingId)) {
         throw new AppError("Zabranjen pristup diskusiji", 403);
     }
 
-    const roleInB = getRoleInBuilding(authUser.sub, d.buildingId);
-    const isOwner = d.ownerId === authUser.sub;
+    // const roleInB = getRoleInBuilding(user.id, d.id);
+    const isOwner = d.owner_id === user.id;
 
-    const canModerate = authUser.role === "admin" || isOwner;
+    const canModerate = user.role === "admin" || isOwner;
 
-    const canViewContent = userCanAccessDiscussion(d, authUser);
+    const canViewContent = await userCanAccessDiscussion(d, user);
 
     const owner = await db.from("app_user").select("*").eq("user_id", d.ownerId);
-    // const owner = db.users.find((u) => u.id === d.ownerId);
     const ownerName = d.ownerName || buildDisplayName(owner);
 
     let participants = [];
-    if (d.isPrivate) {
+    if (d.visibility !== "javno") {
         participants = await db
             .from("discussion_participant")
             .select("*")
@@ -46,7 +56,7 @@ export async function getDiscussionById(id, authUser) {
         }
     }
 
-    const activePoll = getActivePoll(d.id);
+    // const activePoll = getActivePoll(d.id);
     const poll =
         canViewContent && activePoll && activePoll.poll
             ? {

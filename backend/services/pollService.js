@@ -19,7 +19,6 @@ export function getActivePoll(discussionId) {
 }
 
 export function startPoll(discussionId, user, question) {
-    return null;
     const d = assertDiscussion(discussionId);
 
     if (!question || !question.trim()) {
@@ -57,7 +56,6 @@ export function startPoll(discussionId, user, question) {
 }
 
 export function cancelPoll(discussionId, user) {
-    return null;
     const d = assertDiscussion(discussionId);
     const poll = getActivePoll(discussionId);
     if (!poll) {
