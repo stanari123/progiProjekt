@@ -11,16 +11,10 @@ import {
 export async function getDiscussionById(id, authUser) {
     const d = await assertDiscussion(id);
 
-    console.log("Discussion:", d);
-    const activePoll = getActivePoll(d.id);
-    // console.log("authUser:", authUser);
-
     const { data: user } = await db
         .from("app_user")
         .select("*")
         .eq("email", authUser.email);
-
-    // console.log("user:", user);
 
     if (authUser.role !== "admin" && !userInBuilding(user.id, d.buildingId)) {
         throw new AppError("Zabranjen pristup diskusiji", 403);
@@ -56,7 +50,7 @@ export async function getDiscussionById(id, authUser) {
         }
     }
 
-    // const activePoll = getActivePoll(d.id);
+    const activePoll = getActivePoll(d.id);
     const poll =
         canViewContent && activePoll && activePoll.poll
             ? {
