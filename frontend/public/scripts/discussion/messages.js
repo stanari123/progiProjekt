@@ -8,15 +8,22 @@ window.discussionMessagesLoad = async function discussionMessagesLoad() {
     const msgEmpty = document.getElementById("msgEmpty");
     const { token } = window.getAuth();
 
-    let url = window.location.href; // NE DIRAJ - jakov
-    url = url.split("/");
-    url = url.at(url.length - 1); // get discussion id from url
+    // Robust discussion id extraction
+    const discussionId =
+        s.id ||
+        s.discussionId ||
+        (() => {
+            const u = new URL(window.location.href);
+            const parts = u.pathname.split("/").filter(Boolean);
+            return parts.at(-1);
+        })();
 
     try {
-        const res = await fetch(`${window.API_BASE}/discussions/${url}/messages`, {
+        let res = await fetch(`${window.API_BASE}/discussions/${discussionId}/messages`, {
             headers: { Authorization: "Bearer " + token },
         });
-        const data = await res.json().catch(() => []);
+
+        let data = await res.json().catch(() => []);
 
         if (!res.ok) {
             messagesEl && (messagesEl.innerHTML = "");
@@ -79,19 +86,28 @@ window.discussionMessagesLoad = async function discussionMessagesLoad() {
 
         msgStatus && (msgStatus.textContent = "Slanje…");
 
-        let url = window.location.href; // NE DIRAJ - jakov
-        url = url.split("/");
-        url = url.at(url.length - 1); // get discussion id from url
+        // Robust discussion id extraction
+        const discussionId =
+            s.id ||
+            s.discussionId ||
+            (() => {
+                const u = new URL(window.location.href);
+                const parts = u.pathname.split("/").filter(Boolean);
+                return parts.at(-1);
+            })();
 
         try {
-            const res = await fetch(`${window.API_BASE}/discussions/${url}/messages`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: "Bearer " + token,
-                },
-                body: JSON.stringify({ body }),
-            });
+            const res = await fetch(
+                `${window.API_BASE}/discussions/${discussionId}/messages`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: "Bearer " + token,
+                    },
+                    body: JSON.stringify({ body }),
+                }
+            );
             const out = await res.json().catch(() => ({}));
 
             if (!res.ok) {

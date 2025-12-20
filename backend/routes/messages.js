@@ -7,9 +7,9 @@ import {
 
 const router = Router();
 
-router.get("/:id/messages", requireAuth, (req, res, next) => {
+router.get("/:id/messages", requireAuth, async (req, res, next) => {
     try {
-        return res.json(listMessagesForUser(req.params.id, req.user));
+        return res.json(await listMessagesForUser(req.params.id, req.user));
     } catch (err) {
         next(err);
     }
