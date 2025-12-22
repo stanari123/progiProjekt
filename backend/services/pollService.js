@@ -4,7 +4,7 @@ import { AppError } from "../utils/AppError.js";
 import { assertDiscussion } from "./discussionsService.js";
 
 export function getActivePoll(discussionId) {
-    return null;
+    return null; // Temporary disable polls
     const d = assertDiscussion(discussionId);
     const polls = db.messages
         .filter(
