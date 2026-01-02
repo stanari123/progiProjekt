@@ -8,7 +8,6 @@ window.discussionMessagesLoad = async function discussionMessagesLoad() {
     const msgEmpty = document.getElementById("msgEmpty");
     const { token } = window.getAuth();
 
-    // Robust discussion id extraction
     const discussionId =
         s.id ||
         s.discussionId ||
@@ -16,7 +15,7 @@ window.discussionMessagesLoad = async function discussionMessagesLoad() {
             const u = new URL(window.location.href);
             const parts = u.pathname.split("/").filter(Boolean);
             return parts.at(-1);
-        })();
+        })(); // NE DIRAJ - jakov
 
     try {
         let res = await fetch(`${window.API_BASE}/discussions/${discussionId}/messages`, {

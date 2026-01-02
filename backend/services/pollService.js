@@ -1,35 +1,45 @@
-import { nanoid } from "nanoid";
 import { db } from "../data/memory.js";
 import { AppError } from "../utils/AppError.js";
 import { assertDiscussion } from "./discussionsService.js";
 
-export function getActivePoll(discussionId) {
-    return null; // Temporary disable polls
-    const d = assertDiscussion(discussionId);
-    const polls = db.messages
-        .filter(
-            (m) =>
-                m.discussionId === d.id &&
-                m.type === "poll" &&
-                m.poll &&
-                m.poll.active !== false
-        )
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+export async function getActivePoll(discussionId) {
+    // const polls = db.messages
+    //     .filter(
+    //         (m) =>
+    //             m.discussionId === d.id &&
+    //             m.type === "poll" &&
+    //             m.poll &&
+    //             m.poll.active !== false
+    //     )
+    //     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    const { data: polls } = await db
+        .from("poll")
+        .select("*")
+        .eq("discussion_id", discussionId)
+        .eq("closed", false)
+        .order("created_at", { ascending: false });
     return polls[0] || null;
 }
 
-export function startPoll(discussionId, user, question) {
+export async function startPoll(discussionId, user, question) {
     const d = assertDiscussion(discussionId);
 
     if (!question || !question.trim()) {
         throw new AppError("Pitanje je obavezno", 400);
     }
-    if (d.status === "closed") {
+    if (d.closed === true) {
         throw new AppError("Rasprava je zatvorena", 400);
     }
 
-    const isOwner = d.ownerId === user.sub;
-    const isAdmin = user.role === "admin";
+    const { data: userDatabase } = await db
+        .from("app_user")
+        .select("*")
+        .eq("id", user.email)
+        .single();
+
+    const isOwner = d.owner_id === userDatabase.id;
+    const isAdmin = userDatabase.role === "admin";
     if (!isOwner && !isAdmin) {
         throw new AppError("Samo inicijator (ili admin) može pokrenuti glasanje", 403);
     }
@@ -38,38 +48,56 @@ export function startPoll(discussionId, user, question) {
         throw new AppError("Već postoji aktivna anketa", 400);
     }
 
-    const msg = {
-        id: nanoid(),
-        discussionId,
-        authorId: user.sub,
-        type: "poll",
-        body: question.trim(),
-        poll: {
-            active: true,
-            question: question.trim(),
-        },
-        createdAt: new Date().toISOString(),
-    };
+    // const msg = {
+    //     id: nanoid(),
+    //     discussionId,
+    //     authorId: user.sub,
+    //     type: "poll",
+    //     body: question.trim(),
+    //     poll: {
+    //         active: true,
+    //         question: question.trim(),
+    //     },
+    //     createdAt: new Date().toISOString(),
+    // };
 
-    db.messages.push(msg);
+    const { data: msg } = await db
+        .from("poll")
+        .insert({
+            discussion_id: discussionId,
+            author_id: userDatabase.id,
+            question: question.trim(),
+            closed: false,
+        })
+        .select()
+        .single();
+
     return msg;
 }
 
-export function cancelPoll(discussionId, user) {
+export async function cancelPoll(discussionId, user) {
     const d = assertDiscussion(discussionId);
     const poll = getActivePoll(discussionId);
     if (!poll) {
         throw new AppError("Nema aktivne ankete", 400);
     }
 
-    const isOwner = d.ownerId === user.sub;
-    const isAdmin = user.role === "admin";
+    const { data: userDatabase } = await db
+        .from("app_user")
+        .select("*")
+        .eq("id", user.email)
+        .single();
+
+    const isOwner = d.owner_id === userDatabase.user_id;
+    const isAdmin = userDatabase.role === "admin";
     if (!isOwner && !isAdmin) {
         throw new AppError("Samo inicijator (ili admin) može obrisati anketu", 403);
     }
 
-    poll.poll.active = false;
-    db.votes = db.votes.filter((v) => v.discussionId !== discussionId);
+    // poll.poll.active = false;
+    // db.votes = db.votes.filter((v) => v.discussionId !== discussionId);
+
+    await db.update({ closed: true }).from("poll").eq("id", poll.id);
 
     return { ok: true };
 }

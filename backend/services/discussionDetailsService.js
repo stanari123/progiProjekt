@@ -50,7 +50,7 @@ export async function getDiscussionById(id, authUser) {
         }
     }
 
-    const activePoll = getActivePoll(d.id);
+    const activePoll = await getActivePoll(d.id);
     const poll =
         canViewContent && activePoll && activePoll.poll
             ? {
