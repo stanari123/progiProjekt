@@ -1,80 +1,103 @@
-import { nanoid } from "nanoid";
 import { db } from "../data/memory.js";
 import { AppError } from "../utils/AppError.js";
 import { assertDiscussion } from "./discussionsService.js";
 
-export function getActivePoll(discussionId) {
-  const d = assertDiscussion(discussionId);
-  const polls = db.messages
-    .filter(
-      (m) =>
-        m.discussionId === d.id &&
-        m.type === "poll" &&
-        m.poll &&
-        m.poll.active !== false
-    )
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  return polls[0] || null;
+export async function getActivePoll(discussionId) {
+    // const polls = db.messages
+    //     .filter(
+    //         (m) =>
+    //             m.discussionId === d.id &&
+    //             m.type === "poll" &&
+    //             m.poll &&
+    //             m.poll.active !== false
+    //     )
+    //     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    const { data: polls } = await db
+        .from("poll")
+        .select("*")
+        .eq("discussion_id", discussionId)
+        .eq("closed", false)
+        .order("created_at", { ascending: false });
+    return polls[0] || null;
 }
 
-export function startPoll(discussionId, user, question) {
-  const d = assertDiscussion(discussionId);
+export async function startPoll(discussionId, user, question) {
+    const d = assertDiscussion(discussionId);
 
-  if (!question || !question.trim()) {
-    throw new AppError("Pitanje je obavezno", 400);
-  }
-  if (d.status === "closed") {
-    throw new AppError("Rasprava je zatvorena", 400);
-  }
+    if (!question || !question.trim()) {
+        throw new AppError("Pitanje je obavezno", 400);
+    }
+    if (d.closed === true) {
+        throw new AppError("Rasprava je zatvorena", 400);
+    }
 
-  const isOwner = d.ownerId === user.sub;
-  const isAdmin = user.role === "admin";
-  if (!isOwner && !isAdmin) {
-    throw new AppError(
-      "Samo inicijator (ili admin) može pokrenuti glasanje",
-      403
-    );
-  }
+    const { data: userDatabase } = await db
+        .from("app_user")
+        .select("*")
+        .eq("id", user.email)
+        .single();
 
-  if (getActivePoll(discussionId)) {
-    throw new AppError("Već postoji aktivna anketa", 400);
-  }
+    const isOwner = d.owner_id === userDatabase.id;
+    const isAdmin = userDatabase.role === "admin";
+    if (!isOwner && !isAdmin) {
+        throw new AppError("Samo inicijator (ili admin) može pokrenuti glasanje", 403);
+    }
 
-  const msg = {
-    id: nanoid(),
-    discussionId,
-    authorId: user.sub,
-    type: "poll",
-    body: question.trim(),
-    poll: {
-      active: true,
-      question: question.trim(),
-    },
-    createdAt: new Date().toISOString(),
-  };
+    if (getActivePoll(discussionId)) {
+        throw new AppError("Već postoji aktivna anketa", 400);
+    }
 
-  db.messages.push(msg);
-  return msg;
+    // const msg = {
+    //     id: nanoid(),
+    //     discussionId,
+    //     authorId: user.sub,
+    //     type: "poll",
+    //     body: question.trim(),
+    //     poll: {
+    //         active: true,
+    //         question: question.trim(),
+    //     },
+    //     createdAt: new Date().toISOString(),
+    // };
+
+    const { data: msg } = await db
+        .from("poll")
+        .insert({
+            discussion_id: discussionId,
+            author_id: userDatabase.id,
+            question: question.trim(),
+            closed: false,
+        })
+        .select()
+        .single();
+
+    return msg;
 }
 
-export function cancelPoll(discussionId, user) {
-  const d = assertDiscussion(discussionId);
-  const poll = getActivePoll(discussionId);
-  if (!poll) {
-    throw new AppError("Nema aktivne ankete", 400);
-  }
+export async function cancelPoll(discussionId, user) {
+    const d = assertDiscussion(discussionId);
+    const poll = getActivePoll(discussionId);
+    if (!poll) {
+        throw new AppError("Nema aktivne ankete", 400);
+    }
 
-  const isOwner = d.ownerId === user.sub;
-  const isAdmin = user.role === "admin";
-  if (!isOwner && !isAdmin) {
-    throw new AppError(
-      "Samo inicijator (ili admin) može obrisati anketu",
-      403
-    );
-  }
+    const { data: userDatabase } = await db
+        .from("app_user")
+        .select("*")
+        .eq("id", user.email)
+        .single();
 
-  poll.poll.active = false;
-  db.votes = db.votes.filter(v => v.discussionId !== discussionId);
+    const isOwner = d.owner_id === userDatabase.user_id;
+    const isAdmin = userDatabase.role === "admin";
+    if (!isOwner && !isAdmin) {
+        throw new AppError("Samo inicijator (ili admin) može obrisati anketu", 403);
+    }
 
-  return { ok: true };
+    // poll.poll.active = false;
+    // db.votes = db.votes.filter((v) => v.discussionId !== discussionId);
+
+    await db.update({ closed: true }).from("poll").eq("id", poll.id);
+
+    return { ok: true };
 }

@@ -11,24 +11,33 @@ export function buildDisplayName(user) {
     return user.email || "(nepoznat)";
 }
 
-export function userCanAccessDiscussion(discussion, authUser) {
-    if (!discussion.isPrivate) return true;
+export async function userCanAccessDiscussion(discussion, authUser) {
+    // console.log("Checking access for user", authUser, "to discussion", discussion);
+    let { data: user } = await db
+        .from("app_user")
+        .select("*")
+        .eq("email", authUser.email);
 
-    if (authUser.role === "admin") return true;
+    if (discussion.visibility === "javno") return true;
 
-    if (discussion.ownerId === authUser.sub) return true;
+    if (user.role === "admin") return true;
 
-    const isParticipant = db.discussionParticipants.some(
-        (p) => p.discussionId === discussion.id && p.userId === authUser.sub
-    );
+    if (discussion.owner_id === user.id) return true;
+
+    let { data: isParticipant } = await db
+        .from("discussion_participant")
+        .select("*")
+        .eq("discussion_id", discussion.id)
+        .eq("user_id", user.id);
+
     return isParticipant;
 }
 
 export async function assertDiscussion(id) {
-    const getDiscussion = await db.from("discussion").select("*").eq("id", id);
+    const getDiscussion = await db.from("discussion").select("*").eq("id", id).single();
 
     if (!getDiscussion) throw new AppError("Diskusija nije pronađena", 404);
-    return getDiscussion;
+    return getDiscussion.data;
 }
 
 export async function listDiscussions(authUser, buildingId) {
@@ -40,10 +49,7 @@ export async function listDiscussions(authUser, buildingId) {
         .eq("email", authUser.email)
         .single();
 
-    if (
-        authUser.role !== "admin" &&
-        !userInBuilding(userRecord.id, buildingId)
-    ) {
+    if (authUser.role !== "admin" && !userInBuilding(userRecord.id, buildingId)) {
         throw new AppError("Zabranjen pristup zgradi", 403);
     }
 
@@ -59,8 +65,7 @@ export async function listDiscussions(authUser, buildingId) {
             .eq("id", discussion.owner_id)
             .single();
 
-        discussion.ownerName =
-            owner.data.first_name + " " + owner.data.last_name;
+        discussion.ownerName = owner.data.first_name + " " + owner.data.last_name;
     }
 
     return discussionsArray.data;
