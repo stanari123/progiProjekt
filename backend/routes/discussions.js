@@ -1,9 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.js";
-import {
-    listDiscussions,
-    createDiscussion,
-} from "../services/discussionsService.js";
+import { listDiscussions, createDiscussion } from "../services/discussionsService.js";
 
 const router = Router();
 
@@ -19,7 +16,13 @@ router.get("/", requireAuth, async (req, res, next) => {
 
 router.post("/", requireAuth, async (req, res, next) => {
     try {
-        const { title, body, isPrivate = false, buildingId } = req.body || {};
+        const {
+            title,
+            body,
+            isPrivate = false,
+            buildingId,
+            participants = [],
+        } = req.body || {};
         return res
             .status(201)
             .json(
@@ -28,7 +31,8 @@ router.post("/", requireAuth, async (req, res, next) => {
                     buildingId,
                     title,
                     body,
-                    isPrivate
+                    isPrivate,
+                    participants
                 )
             );
     } catch (e) {
