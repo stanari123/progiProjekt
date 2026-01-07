@@ -1,0 +1,267 @@
+* {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #f6f8fa;
+    color: black;
+}
+
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #fff;
+}
+
+.topbar .brand {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #111827;
+}
+
+.icon-btn {
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    font-size: 22px;
+    color: #111827;
+    transition: transform 0.1s, color 0.1s;
+}
+.icon-btn:hover {
+    color: #1e40af;
+    transform: scale(1.1);
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: 240px minmax(720px, 900px) 1fr;
+    gap: 16px;
+    padding: 16px;
+    align-items: flex-start;
+}
+
+.card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 14px;
+    background: #fff;
+    margin-bottom: 12px;
+}
+
+.muted {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.badge {
+    display: inline-block;
+    background: #eef2ff;
+    color: #4338ca;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.btn {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    cursor: pointer;
+    color: black;
+}
+.btn.primary {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+}
+
+.btn.active {
+    background: #1e4fd6;
+    color: #fff;
+    border-color: #1e4fd6;
+}
+.discussion-card {
+    cursor: pointer;
+    transition: transform 0.05s;
+}
+.discussion-card:hover {
+    transform: scale(1.01);
+    background-color: #f9fafb;
+}
+
+.slide {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: 320px;
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+    background: #fff;
+    border-left: 1px solid #e5e7eb;
+    box-shadow: -6px 0 18px rgba(0, 0, 0, 0.06);
+    padding: 16px;
+    z-index: 50;
+}
+.slide.open {
+    transform: translateX(0);
+}
+.slide .row {
+    margin-bottom: 8px;
+}
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    border: 0;
+    background: transparent;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    color: #6b7280;
+}
+.close-btn:hover {
+    color: #111827;
+}
+.actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.messages .item {
+    margin-bottom: 8px;
+}
+.messages .head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    margin-bottom: 3px;
+    color: #4b5563;
+}
+
+#buildingSel[disabled] {
+    opacity: 1;
+    background: #ffffff;
+    color: #111827;
+    cursor: not-allowed;
+}
+.discussion-main-block {
+    margin-bottom: 16px;
+}
+
+@media (max-width: 960px) {
+    .layout {
+        grid-template-columns: 1fr;
+    }
+}
+.card-header {
+    position: relative;
+    padding-right: 120px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.card-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+.card-header #newDiscBtn {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+.card-header h2 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.card-header {
+    margin-bottom: 16px;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.card-header .header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+#newDiscForm input[type="text"],
+#newDiscForm textarea {
+    width: 100%;
+    box-sizing: border-box;
+    display: block;
+}
+#newDiscForm label {
+    display: block;
+    width: 100%;
+}
+#discussionCard .card-header h1 {
+    margin: 0;
+    font-size: 1.4rem;
+}
+
+#discussionCard .card-header {
+    margin-bottom: 14px;
+    position: relative;
+    padding-right: 110px;
+}
+
+#discussionCard .card-header #backToIndex {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+#msgForm textarea {
+    width: 100%;
+    box-sizing: border-box;
+    display: block;
+}
+
+#voteCard input[type="text"] {
+    width: 100%;
+    box-sizing: border-box;
+    display: block;
+}
+
+.messages .msg-row {
+    margin-bottom: 10px;
+}
+
+.messages .msg-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: baseline;
+}
+
+#discList h3 {
+    margin-bottom: 8px;
+    color: #374151;
+}
+
+.topbar-title {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 1.4rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.topbar-title:hover {
+    opacity: 0.8;
+}
