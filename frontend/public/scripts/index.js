@@ -51,7 +51,7 @@ async function loadDiscussionsFor(buildingId) {
 
         for (const d of data) {
             if (!d) continue;
-            if (!d.isPrivate) publicOnes.push(d);
+            if (d.visibility === "javno") publicOnes.push(d);
             else if (d.canViewContent === false) privateNo.push(d);
             else privateYes.push(d);
         }
@@ -66,20 +66,20 @@ async function loadDiscussionsFor(buildingId) {
           <article
             class="card discussion-card ${muted ? "disc-muted" : ""}"
             data-id="${d.id}"
-            data-private="${d.isPrivate}"
+            data-private="${d.visibility === "privatno"}"
             data-canview="${d.canViewContent}"
           >
             <h4>${window.escapeHtml(d.title || "Bez naslova")}</h4>
             ${
-                (!d.isPrivate || d.canViewContent) && d.body
-                    ? `<p>${window.escapeHtml(d.body)}</p>`
+                (d.visibility === "javno" || d.canViewContent) && d.poll_description
+                    ? `<p>${window.escapeHtml(d.poll_description)}</p>`
                     : ``
             }
             <div class="muted">
               ${window.escapeHtml(d.ownerName || d.ownerEmail || "#" + d.id)}
-              ${d.createdAt ? " · " + new Date(d.createdAt).toLocaleString() : ""}
+              ${d.created_at ? " · " + new Date(d.created_at).toLocaleString() : ""}
               ${d.status ? " · " + d.status.toUpperCase() : ""}
-              ${d.isPrivate ? " · 🔒 Privatna" : ""}
+              ${d.visibility === "privatno" ? " · 🔒 Privatna" : ""}
             </div>
           </article>
         `
