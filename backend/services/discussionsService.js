@@ -12,9 +12,6 @@ export function buildDisplayName(user) {
 }
 
 export async function userCanAccessDiscussion(discussion, authUser) {
-    console.log("Checking access for user", authUser, "to discussion", discussion);
-
-    // Check admin role from JWT first
     if (authUser.role === "admin") return true;
 
     let { data: user } = await db
@@ -22,9 +19,7 @@ export async function userCanAccessDiscussion(discussion, authUser) {
         .select("*")
         .eq("email", authUser.email)
         .single();
-    console.log("Fetched user record:", user);
 
-    // If user not found in database, deny access
     if (!user) return false;
 
     if (discussion.visibility === "javno") return true;
@@ -39,8 +34,6 @@ export async function userCanAccessDiscussion(discussion, authUser) {
         .eq("discussion_id", discussion.id)
         .eq("user_id", user.id)
         .maybeSingle();
-
-    console.log("Is participant:", isParticipant);
 
     return !!isParticipant;
 }
