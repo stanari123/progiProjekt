@@ -19,11 +19,14 @@ export async function getActivePoll(discussionId) {
         .eq("discussion_id", discussionId)
         .eq("closed", false)
         .order("created_at", { ascending: false });
-    return polls;
+
+    console.log("Active polls for discussion", discussionId, polls);
+    return polls || null;
 }
 
 export async function startPoll(discussionId, user, question) {
-    const d = assertDiscussion(discussionId);
+    const d = await assertDiscussion(discussionId);
+    console.log("Starting poll for discussion:", discussionId, "by user:", user);
 
     if (!question || !question.trim()) {
         throw new AppError("Pitanje je obavezno", 400);
@@ -35,7 +38,7 @@ export async function startPoll(discussionId, user, question) {
     const { data: userDatabase } = await db
         .from("app_user")
         .select("*")
-        .eq("id", user.email)
+        .eq("email", user.email)
         .single();
 
     console.log("USER DATABASE", userDatabase);
@@ -47,9 +50,9 @@ export async function startPoll(discussionId, user, question) {
         throw new AppError("Samo inicijator (ili admin) može pokrenuti glasanje", 403);
     }
 
-    if (getActivePoll(discussionId)) {
-        throw new AppError("Već postoji aktivna anketa", 400);
-    }
+    // if (getActivePoll(discussionId)) {
+    //     throw new AppError("Već postoji aktivna anketa", 400);
+    // }
 
     // const msg = {
     //     id: nanoid(),
