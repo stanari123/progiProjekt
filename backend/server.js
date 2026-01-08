@@ -47,9 +47,10 @@ app.use("/auth", oauthRouter);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "../frontend/views"));
-app.use(express.static(path.join(__dirname, "../frontend/public")));
+// staro
+/*app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "../front_react/views"));
+app.use(express.static(path.join(__dirname, "../front_react/public")));
 
 app.get("/", (req, res) => {
     res.render("pages/index", { mode: "list" });
@@ -75,10 +76,16 @@ app.get("/discussions/:id", (req, res, next) => {
     } catch (err) {
         return next(err);
     }
-});
+});*/
 
 app.get("/health", (_req, res) => {
     res.status(200).json({ status: "ok", uptime: process.uptime() });
+});
+
+// za React
+app.use(express.static(path.join(__dirname, "dist")));
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
 app.use(errorHandler);
