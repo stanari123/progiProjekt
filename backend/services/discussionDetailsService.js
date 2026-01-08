@@ -7,46 +7,56 @@ import {
     userCanAccessDiscussion,
     assertDiscussion,
 } from "./discussionsService.js";
+import auth from "basic-auth";
 
 export async function getDiscussionById(id, authUser) {
     const d = await assertDiscussion(id);
 
+    // console.log("Asserting discussion for id:", id, "and user:", authUser);
+
     const { data: user } = await db
         .from("app_user")
         .select("*")
-        .eq("email", authUser.email);
+        .eq("email", authUser.email)
+        .single();
 
-    if (authUser.role !== "admin" && !userInBuilding(user.id, d.buildingId)) {
+    if (authUser.role !== "admin" && user && !userInBuilding(user.id, d.building_id)) {
         throw new AppError("Zabranjen pristup diskusiji", 403);
     }
 
-    // const roleInB = getRoleInBuilding(user.id, d.id);
-    const isOwner = d.owner_id === user.id;
+    const isOwner = user && d.owner_id === user.id;
 
-    const canModerate = user.role === "admin" || isOwner;
+    const canModerate =
+        authUser.role === "admin" || (user && user.role === "admin") || isOwner;
 
-    const canViewContent = await userCanAccessDiscussion(d, user);
+    const canViewContent = await userCanAccessDiscussion(d, authUser);
 
-    const owner = await db.from("app_user").select("*").eq("user_id", d.ownerId);
+    const { data: owner } = await db
+        .from("app_user")
+        .select("*")
+        .eq("id", d.owner_id)
+        .single();
     const ownerName = d.ownerName || buildDisplayName(owner);
 
     let participants = [];
-    if (d.visibility !== "javno") {
-        participants = await db
+    if (d.visibility === "privatno") {
+        const { data: participantRecords } = await db
             .from("discussion_participant")
             .select("*")
             .eq("discussion_id", d.id);
-        for (let i = 0; i < participants.length; i++) {
-            const u = await db
+
+        for (let participant of participantRecords || []) {
+            const { data: u } = await db
                 .from("app_user")
                 .select("*")
-                .eq("id", participants[i].userId);
+                .eq("id", participant.user_id)
+                .single();
 
-            participants[i] = {
-                userId: participants[i].user_id,
-                name: u ? buildDisplayName(u) : participants[i].user_id,
-                canPost: participants[i].canPost !== false,
-            };
+            participants.push({
+                userId: participant.user_id,
+                name: u ? buildDisplayName(u) : participant.user_id,
+                canPost: participant.can_post !== false,
+            });
         }
     }
 
@@ -64,8 +74,8 @@ export async function getDiscussionById(id, authUser) {
     let addableMembers = [];
     const canEditParticipants = authUser.role === "admin" || isOwner;
 
-    if (canEditParticipants && d.isPrivate) {
-        const buildingMembers = listMembers(d.buildingId, authUser);
+    if (canEditParticipants && d.visibility === "privatno") {
+        const buildingMembers = await listMembers(d.building_id, authUser);
         const currentIds = new Set(participants.map((p) => p.userId));
 
         addableMembers = buildingMembers
@@ -91,7 +101,7 @@ export async function getDiscussionById(id, authUser) {
         ownerName,
         canModerate,
         canViewContent,
-        body: canViewContent ? d.body : "",
+        poll_description: canViewContent ? d.poll_description : "",
         participants,
         poll,
         addableMembers,

@@ -8,6 +8,11 @@ const newDiscTitle = document.getElementById("newDiscTitle");
 const newDiscBody = document.getElementById("newDiscBody");
 const newDiscPrivate = document.getElementById("newDiscPrivate");
 const newDiscMsg = document.getElementById("newDiscMsg");
+const participantsSection = document.getElementById("participantsSection");
+const participantsList = document.getElementById("participantsList");
+const selectedParticipantsInfo = document.getElementById("selectedParticipantsInfo");
+
+let selectedParticipants = new Set();
 
 async function loadDiscussionsFor(buildingId) {
     if (!discList || !discFeedback) return;
@@ -118,6 +123,97 @@ function updateNewButtonVisibility() {
     newDiscBtn.style.display = token ? "" : "none";
 }
 
+async function loadParticipants(buildingId) {
+    if (!buildingId || !participantsList) return;
+
+    const { token } = window.getAuth();
+    if (!token) return;
+
+    try {
+        const res = await fetch(
+            `${window.API_BASE}/buildings/${encodeURIComponent(buildingId)}/members`,
+            {
+                headers: { Authorization: "Bearer " + token },
+            }
+        );
+        const data = await res.json().catch(() => []);
+
+        if (!res.ok) {
+            console.error("Error loading members:", data);
+            return;
+        }
+
+        // Clear previous selection
+        selectedParticipants.clear();
+        participantsList.innerHTML = "";
+
+        if (!Array.isArray(data) || data.length === 0) {
+            participantsList.innerHTML = '<p class="muted">Nema dostupnih članova.</p>';
+            return;
+        }
+
+        // Render checkboxes for each member
+        data.forEach((member, index) => {
+            const displayName =
+                [member.firstName, member.lastName].filter(Boolean).join(" ") ||
+                "Nepoznat";
+            const checkboxId = `participant-${index}`;
+            const checkbox = document.createElement("label");
+            checkbox.style.display = "block";
+            checkbox.style.padding = "6px";
+            checkbox.style.cursor = "pointer";
+            checkbox.innerHTML = `
+                <input type="checkbox" id="${checkboxId}" class="participant-checkbox" value="${displayName}" />
+                ${window.escapeHtml(displayName)} (${member.roleInBuilding})
+            `;
+            participantsList.appendChild(checkbox);
+        });
+
+        // Add event listeners to checkboxes
+        participantsList.querySelectorAll(".participant-checkbox").forEach((checkbox) => {
+            checkbox.addEventListener("change", () => {
+                if (checkbox.checked) {
+                    selectedParticipants.add(checkbox.value);
+                } else {
+                    selectedParticipants.delete(checkbox.value);
+                }
+                updateSelectedParticipantsInfo();
+            });
+        });
+    } catch (err) {
+        console.error("Error loading participants:", err);
+    }
+}
+
+function updateSelectedParticipantsInfo() {
+    if (!selectedParticipantsInfo) return;
+    if (selectedParticipants.size === 0) {
+        selectedParticipantsInfo.textContent = "Nema odabranih sudionika";
+    } else {
+        selectedParticipantsInfo.textContent = `Odabranih sudionika: ${selectedParticipants.size}`;
+    }
+}
+
+newDiscPrivate?.addEventListener("change", async () => {
+    const buildingSel = document.getElementById("buildingSel");
+    const buildingId = buildingSel?.value;
+
+    if (newDiscPrivate.checked) {
+        if (participantsSection) {
+            participantsSection.style.display = "block";
+        }
+        await loadParticipants(buildingId);
+    } else {
+        if (participantsSection) {
+            participantsSection.style.display = "none";
+        }
+        selectedParticipants.clear();
+        if (selectedParticipantsInfo) {
+            selectedParticipantsInfo.textContent = "";
+        }
+    }
+});
+
 newDiscBtn?.addEventListener("click", () => {
     if (!newDiscForm) return;
     newDiscForm.style.display = "block";
@@ -147,6 +243,13 @@ newDiscForm?.addEventListener("submit", async (e) => {
         return;
     }
 
+    if (isPrivate && selectedParticipants.size === 0) {
+        if (newDiscMsg)
+            newDiscMsg.textContent =
+                "Za privatnu raspravu morate odabrati barem jednog sudionika.";
+        return;
+    }
+
     try {
         const res = await fetch(`${window.API_BASE}/discussions`, {
             method: "POST",
@@ -154,7 +257,13 @@ newDiscForm?.addEventListener("submit", async (e) => {
                 "Content-Type": "application/json",
                 Authorization: "Bearer " + token,
             },
-            body: JSON.stringify({ title, body, isPrivate, buildingId }),
+            body: JSON.stringify({
+                title,
+                body,
+                isPrivate,
+                buildingId,
+                participants: Array.from(selectedParticipants),
+            }),
         });
 
         const data = await res.json().catch(() => ({}));
@@ -166,6 +275,9 @@ newDiscForm?.addEventListener("submit", async (e) => {
 
         newDiscForm.reset();
         newDiscForm.style.display = "none";
+        selectedParticipants.clear();
+        if (participantsSection) participantsSection.style.display = "none";
+        if (selectedParticipantsInfo) selectedParticipantsInfo.textContent = "";
         updateNewButtonVisibility();
 
         await loadDiscussionsFor(buildingId);
