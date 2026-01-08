@@ -19,7 +19,7 @@ export async function getActivePoll(discussionId) {
         .eq("discussion_id", discussionId)
         .eq("closed", false)
         .order("created_at", { ascending: false });
-    return polls[0] || null;
+    return polls;
 }
 
 export async function startPoll(discussionId, user, question) {
@@ -37,6 +37,9 @@ export async function startPoll(discussionId, user, question) {
         .select("*")
         .eq("id", user.email)
         .single();
+
+    console.log("USER DATABASE", userDatabase);
+    console.log("DISCUSSION", d);
 
     const isOwner = d.owner_id === userDatabase.id;
     const isAdmin = userDatabase.role === "admin";
