@@ -18,26 +18,26 @@ window.discussionVotesLoad = async function discussionVotesLoad() {
         if (voteNoBtn) voteNoBtn.style.display = show ? "" : "none";
     }
 
-    voteInfo && (voteInfo.textContent = "Učitavam…");
+    // voteInfo && (voteInfo.textContent = "Učitavam…");
+
+    const pollActive = s.poll && s.poll.active !== false;
+    const closed = s.status === "closed";
+
+    if (!pollActive) {
+        voteInfo && (voteInfo.textContent = "Nema aktivne ankete.");
+        setBtns(false);
+        yesCount && (yesCount.style.display = "none");
+        noCount && (noCount.style.display = "none");
+        totalVotes && (totalVotes.style.display = "none");
+        thresholdEl && (thresholdEl.style.display = "none");
+        return;
+    }
 
     try {
-        const res = await fetch(`${window.API_BASE}/discussions/${s.id}/votes/summary`, {
+        const res = await fetch(`${window.API_BASE}/polls/${s.poll.id}/vote-summary`, {
             headers: { Authorization: "Bearer " + token },
         });
         const summary = await res.json().catch(() => ({}));
-
-        const pollActive = s.poll && s.poll.active !== false;
-        const closed = s.status === "closed";
-
-        if (!pollActive) {
-            voteInfo && (voteInfo.textContent = "Nema aktivne ankete.");
-            setBtns(false);
-            yesCount && (yesCount.style.display = "none");
-            noCount && (noCount.style.display = "none");
-            totalVotes && (totalVotes.style.display = "none");
-            thresholdEl && (thresholdEl.style.display = "none");
-            return;
-        }
 
         if (!res.ok) {
             voteInfo &&
@@ -77,7 +77,7 @@ window.discussionVotesLoad = async function discussionVotesLoad() {
         voteNoBtn &&
             voteNoBtn.classList.toggle("active", summary.currentUserVote === "no");
 
-        voteInfo && (voteInfo.textContent = "Sažetak glasanja:");
+        // voteInfo && (voteInfo.textContent = "Sažetak glasanja:");
     } catch (err) {
         console.error(err);
         voteInfo && (voteInfo.textContent = "Greška u komunikaciji.");
@@ -92,21 +92,72 @@ window.discussionVotesLoad = async function discussionVotesLoad() {
     async function cast(value) {
         const s = window.DISCUSSION_PAGE;
         const { token, user } = window.getAuth();
-        if (!s) return;
+        if (!s || !s.poll) return;
         if (user && user.role === "admin") return;
 
-        await fetch(`${window.API_BASE}/discussions/${s.id}/votes`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: "Bearer " + token,
-            },
-            body: JSON.stringify({ value }),
-        });
+        const voteInfo = document.getElementById("voteInfo");
 
-        await window.discussionVotesLoad();
+        try {
+            // if (voteInfo) voteInfo.textContent = "Šaljem glas...";
+
+            const res = await fetch(`${window.API_BASE}/polls/${s.poll.id}/vote`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: "Bearer " + token,
+                },
+                body: JSON.stringify({ value }),
+            });
+
+            const result = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                console.error("Vote failed:", result);
+                if (voteInfo)
+                    voteInfo.textContent = result.error || "Greška pri glasanju.";
+                return;
+            }
+
+            console.log("Vote cast successfully:", result);
+            await window.discussionVotesLoad();
+        } catch (err) {
+            console.error("Error casting vote:", err);
+            if (voteInfo) voteInfo.textContent = "Greška u komunikaciji.";
+        }
     }
 
     voteYesBtn?.addEventListener("click", () => cast("yes"));
     voteNoBtn?.addEventListener("click", () => cast("no"));
 })();
+
+// Auto-refresh vote counts every 5 seconds
+let voteRefreshInterval = null;
+
+window.startVoteAutoRefresh = function () {
+    if (voteRefreshInterval) {
+        clearInterval(voteRefreshInterval);
+    }
+
+    voteRefreshInterval = setInterval(async () => {
+        const s = window.DISCUSSION_PAGE;
+        if (s && s.poll && s.poll.active !== false && s.status !== "closed") {
+            await window.discussionVotesLoad();
+        }
+    }, 5000); // Refresh every 5 seconds
+};
+
+window.stopVoteAutoRefresh = function () {
+    if (voteRefreshInterval) {
+        clearInterval(voteRefreshInterval);
+        voteRefreshInterval = null;
+    }
+};
+
+// Start auto-refresh when page loads
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+        setTimeout(() => window.startVoteAutoRefresh(), 1000);
+    });
+} else {
+    setTimeout(() => window.startVoteAutoRefresh(), 1000);
+}

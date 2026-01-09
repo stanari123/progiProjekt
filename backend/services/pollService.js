@@ -20,13 +20,13 @@ export async function getActivePoll(discussionId) {
         .eq("closed", false)
         .order("created_at", { ascending: false });
 
-    console.log("Active polls for discussion", discussionId, polls);
+    //console.log("Active polls for discussion", discussionId, polls);
     return polls || null;
 }
 
 export async function startPoll(discussionId, user, question) {
     const d = await assertDiscussion(discussionId);
-    console.log("Starting poll for discussion:", discussionId, "by user:", user);
+    //console.log("Starting poll for discussion:", discussionId, "by user:", user);
 
     if (!question || !question.trim()) {
         throw new AppError("Pitanje je obavezno", 400);
@@ -41,8 +41,8 @@ export async function startPoll(discussionId, user, question) {
         .eq("email", user.email)
         .single();
 
-    console.log("USER DATABASE", userDatabase);
-    console.log("DISCUSSION", d);
+    //console.log("USER DATABASE", userDatabase);
+    //console.log("DISCUSSION", d);
 
     const isOwner = d.owner_id === userDatabase.id;
     const isAdmin = userDatabase.role === "admin";

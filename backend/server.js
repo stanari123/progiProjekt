@@ -34,7 +34,7 @@ app.use("/api/discussions", discussionsRouter);
 app.use("/api/discussions", discussionDetailRouter);
 app.use("/api/discussions", pollRouter);
 app.use("/api/discussions", messagesRouter);
-app.use("/api/discussions", votesRouter);
+app.use("/api/polls", votesRouter);
 app.use("/api/buildings", buildingsRouter);
 app.use("/api/admin", adminRouter);
 

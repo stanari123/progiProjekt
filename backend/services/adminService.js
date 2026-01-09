@@ -3,7 +3,8 @@ import { db } from "../data/memory.js";
 import { AppError } from "../utils/AppError.js";
 
 export class User {
-    constructor(firstName, lastName, email, role, password) {
+    constructor(id, firstName, lastName, email, role, password) {
+        this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
@@ -23,6 +24,7 @@ export async function findUserByEmail(email = "") {
     if (!data) return null;
 
     return new User(
+        data.id,
         data.first_name,
         data.last_name,
         data.email,
@@ -63,24 +65,30 @@ export async function createUser(currentUser, newUser) {
     }
 
     const passHash = await bcrypt.hash(newUser.password, 10);
+
+    const { data, error } = await db
+        .from("app_user")
+        .insert({
+            first_name: newUser.firstName,
+            last_name: newUser.lastName,
+            email: newUser.email,
+            password_hash: passHash,
+            role: newUser.role,
+        })
+        .select();
+
+    if (error || !data || data.length === 0) {
+        throw new AppError("Greška pri kreiranju korisnika", 500);
+    }
+
     const user = new User(
+        data[0].id,
         newUser.firstName,
         newUser.lastName,
         newUser.email,
         newUser.role,
         passHash
     );
-
-    const { data, error } = await db
-        .from("app_user")
-        .insert({
-            first_name: user.firstName,
-            last_name: user.lastName,
-            email: user.email,
-            password_hash: user.password,
-            role: user.role,
-        })
-        .select();
 
     await addMembership(data[0].id, newUser.buildingIds, newUser.role);
 

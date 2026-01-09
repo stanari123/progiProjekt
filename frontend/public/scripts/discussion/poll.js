@@ -62,7 +62,12 @@ window.discussionPollRender = function discussionPollRender() {
         const out = await res.json().catch(() => ({}));
         if (res.ok) {
             pollInput.value = "";
-            s.poll = out.poll || { question: q, active: true };
+            s.poll = {
+                id: out.id,
+                question: out.question,
+                active: !out.closed,
+                createdAt: out.created_at,
+            };
             window.discussionPollRender();
             window.discussionVotesLoad && window.discussionVotesLoad();
         }
