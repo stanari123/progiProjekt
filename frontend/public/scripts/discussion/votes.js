@@ -130,7 +130,6 @@ window.discussionVotesLoad = async function discussionVotesLoad() {
     voteNoBtn?.addEventListener("click", () => cast("no"));
 })();
 
-// Auto-refresh vote counts every 5 seconds
 let voteRefreshInterval = null;
 
 window.startVoteAutoRefresh = function () {
@@ -153,7 +152,6 @@ window.stopVoteAutoRefresh = function () {
     }
 };
 
-// Start auto-refresh when page loads
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
         setTimeout(() => window.startVoteAutoRefresh(), 1000);

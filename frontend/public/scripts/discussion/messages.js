@@ -85,7 +85,6 @@ window.discussionMessagesLoad = async function discussionMessagesLoad() {
 
         msgStatus && (msgStatus.textContent = "Slanje…");
 
-        // Robust discussion id extraction
         const discussionId =
             s.id ||
             s.discussionId ||

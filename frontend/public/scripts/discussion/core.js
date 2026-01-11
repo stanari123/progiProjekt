@@ -16,7 +16,6 @@ window.DISCUSSION_PAGE = {
 };
 
 function getDiscussionIdFromUrl() {
-    // Prefer ?id=..., then data-discussion-id, then last path segment
     const qsId = new URLSearchParams(location.search).get("id");
     if (qsId) return qsId;
     const card = document.getElementById("discussionCard");
