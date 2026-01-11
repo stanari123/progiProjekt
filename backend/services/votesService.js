@@ -1,65 +1,111 @@
 import { db } from "../data/memory.js";
 import { AppError } from "../utils/AppError.js";
-import { getRoleInBuilding } from "./buildingsService.js";
 import { assertDiscussion } from "./discussionsService.js";
 
-export function castVote(discussionId, userId, value) {
-  if (!["yes", "no"].includes(value)) {
-    throw new AppError("value mora biti 'yes' ili 'no'", 400);
-  }
-
-  const d = assertDiscussion(discussionId);
-  if (d.status === "closed") {
-    throw new AppError("Rasprava je zatvorena", 400);
-  }
-
-  const roleInB = getRoleInBuilding(userId, d.buildingId);
-  if (!roleInB) throw new AppError("Niste član ove zgrade", 403);
-  if (roleInB === "admin") throw new AppError("Admin ne može glasati", 403);
-
-  const idx = db.votes.findIndex(v => v.discussionId === discussionId && v.userId === userId);
-  if (idx >= 0) {
-    const current = db.votes[idx].value;
-    if (current === value) {
-      db.votes.splice(idx, 1);
-      return { status: "cleared" };
-    } else {
-      db.votes[idx].value = value;
-      return { status: "updated" };
+export async function castVote(pollId, user, value) {
+    if (!["yes", "no"].includes(value)) {
+        throw new AppError("value mora biti 'yes' ili 'no'", 400);
     }
-  } else {
-    db.votes.push({ discussionId, userId, value, roleInBuilding: roleInB });
-    return { status: "created" };
-  }
+
+    const { data: dbUser } = await db
+        .from("app_user")
+        .select("*")
+        .eq("email", user.email)
+        .single();
+
+    const userId = dbUser.id;
+
+    if (!userId) {
+        console.error("User ID missing from JWT:", user);
+        throw new AppError("Neispravna autentifikacija", 401);
+    }
+
+    if (value === "yes") {
+        value = "da";
+    }
+    if (value === "no") {
+        value = "ne";
+    }
+
+    const { data: existingVote } = await db
+        .from("vote")
+        .select("*")
+        .eq("poll_id", pollId)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+    if (existingVote) {
+        if (existingVote.value !== value) {
+            await db.from("vote").delete().eq("poll_id", pollId).eq("user_id", userId);
+        } else {
+            return { message: "Glas zabilježen", value };
+        }
+    }
+
+    const { data: newVote } = await db
+        .from("vote")
+        .insert({
+            poll_id: pollId,
+            user_id: userId,
+            value,
+        })
+        .select()
+        .single();
+
+    return { message: "Glas zabilježen", value, vote: newVote };
 }
-export function getVoteSummary(discussionId, userId) {
-  const d = assertDiscussion(discussionId);
 
-  const totalOwners = db.memberships.filter(
-    m => m.buildingId === d.buildingId && m.roleInBuilding === "suvlasnik"
-  ).length || 1;
+export async function getVoteSummary(pollId, user) {
+    const { data: dbUser } = await db
+        .from("app_user")
+        .select("*")
+        .eq("email", user.email)
+        .maybeSingle();
 
-  const allVotes = db.votes.filter(v => v.discussionId === discussionId);
-  const ownerVotes = allVotes.filter(v => {
-    if (v.roleInBuilding) return v.roleInBuilding === "suvlasnik";
-    const m = db.memberships.find(
-      m => m.userId === v.userId && m.buildingId === d.buildingId
-    );
-    return m?.roleInBuilding === "suvlasnik";
-  });
+    const userId = dbUser?.id;
 
-  const yes = ownerVotes.filter(v => v.value === "yes").length;
-  const no  = ownerVotes.filter(v => v.value === "no").length;
+    const { data: poll, error: pollError } = await db
+        .from("poll")
+        .select("*")
+        .eq("id", pollId)
+        .maybeSingle();
 
-  const thresholdReached = yes > totalOwners / 4;
-  const mine = allVotes.find(v => v.userId === userId)?.value || null;
+    if (pollError || !poll) {
+        console.error("Poll lookup failed:", pollError, "pollId:", pollId);
+        throw new AppError("Anketa nije pronađena", 404);
+    }
 
-  return {
-    total: ownerVotes.length,
-    yes,
-    no,
-    totalOwners,
-    thresholdReached,
-    currentUserVote: mine,
-  };
+    const d = await assertDiscussion(poll.discussion_id);
+
+    const { data: allVotes } = await db.from("vote").select("*").eq("poll_id", pollId);
+
+    const { data: members } = await db
+        .from("building_membership")
+        .select("*")
+        .eq("building_id", d.building_id)
+        .eq("user_role", "suvlasnik");
+
+    const totalOwners = (members || []).length || 1;
+
+    const ownerVotes = (allVotes || []).filter((v) => {
+        return members?.some((m) => m.user_id === v.user_id);
+    });
+
+    const yes = ownerVotes.filter((v) => v.value === "yes" || v.value === "da").length;
+    const no = ownerVotes.filter((v) => v.value === "no" || v.value === "ne").length;
+
+    const thresholdReached = yes > totalOwners / 4;
+    let mine = (allVotes || []).find((v) => v.user_id === userId)?.value || null;
+
+    if (mine === "da") mine = "yes";
+    if (mine === "ne") mine = "no";
+
+    return {
+        total: ownerVotes.length,
+        yes,
+        no,
+        totalOwners,
+        thresholdReached,
+        currentUserVote: mine,
+    };
 }
