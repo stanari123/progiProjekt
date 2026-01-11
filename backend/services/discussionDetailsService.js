@@ -62,12 +62,12 @@ export async function getDiscussionById(id, authUser) {
 
     const activePoll = await getActivePoll(d.id);
     const poll =
-        canViewContent && activePoll && activePoll.length > 0
+        canViewContent && activePoll
             ? {
-                  id: activePoll[0].id,
-                  question: activePoll[0].question,
-                  active: !activePoll[0].closed,
-                  createdAt: activePoll[0].created_at,
+                  id: activePoll.id,
+                  question: activePoll.question,
+                  active: !activePoll.closed,
+                  createdAt: activePoll.created_at,
               }
             : null;
 

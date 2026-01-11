@@ -1,6 +1,5 @@
 import { db } from "../data/memory.js";
 import { AppError } from "../utils/AppError.js";
-import { userInBuilding } from "./buildingsService.js";
 import { assertDiscussion } from "./discussionsService.js";
 
 export async function castVote(pollId, user, value) {
@@ -16,6 +15,11 @@ export async function castVote(pollId, user, value) {
 
     const userId = dbUser.id;
 
+    if (!userId) {
+        console.error("User ID missing from JWT:", user);
+        throw new AppError("Neispravna autentifikacija", 401);
+    }
+
     if (value === "yes") {
         value = "da";
     }
@@ -23,30 +27,33 @@ export async function castVote(pollId, user, value) {
         value = "ne";
     }
 
-    if (!userId) {
-        console.error("User ID missing from JWT:", user);
-        throw new AppError("Neispravna autentifikacija", 401);
-    }
-
     const { data: existingVote } = await db
         .from("vote")
         .select("*")
         .eq("poll_id", pollId)
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
-    if (existingVote.value !== value) {
-        await db.from("vote").delete().eq("poll_id", pollId).eq("user_id", userId);
+    if (existingVote) {
+        if (existingVote.value !== value) {
+            await db.from("vote").delete().eq("poll_id", pollId).eq("user_id", userId);
+        } else {
+            // Same vote, no need to insert again
+            return { message: "Glas zabilježen", value };
+        }
     }
 
-    await db
+    const { data: newVote } = await db
         .from("vote")
         .insert({
             poll_id: pollId,
             user_id: userId,
             value,
         })
-        .select();
+        .select()
+        .single();
+
+    return { message: "Glas zabilježen", value, vote: newVote };
 }
 
 export async function getVoteSummary(pollId, user) {
@@ -89,7 +96,11 @@ export async function getVoteSummary(pollId, user) {
     const no = ownerVotes.filter((v) => v.value === "no" || v.value === "ne").length;
 
     const thresholdReached = yes > totalOwners / 4;
-    const mine = (allVotes || []).find((v) => v.user_id === userId)?.value || null;
+    let mine = (allVotes || []).find((v) => v.user_id === userId)?.value || null;
+
+    // Normalize vote values for frontend
+    if (mine === "da") mine = "yes";
+    if (mine === "ne") mine = "no";
 
     return {
         total: ownerVotes.length,
