@@ -38,7 +38,6 @@ export async function castVote(pollId, user, value) {
         if (existingVote.value !== value) {
             await db.from("vote").delete().eq("poll_id", pollId).eq("user_id", userId);
         } else {
-            // Same vote, no need to insert again
             return { message: "Glas zabilježen", value };
         }
     }
@@ -98,7 +97,6 @@ export async function getVoteSummary(pollId, user) {
     const thresholdReached = yes > totalOwners / 4;
     let mine = (allVotes || []).find((v) => v.user_id === userId)?.value || null;
 
-    // Normalize vote values for frontend
     if (mine === "da") mine = "yes";
     if (mine === "ne") mine = "no";
 

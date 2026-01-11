@@ -66,6 +66,7 @@ export async function cancelPoll(discussionId, user) {
 
     const isOwner = d.owner_id === userDatabase.user_id;
     const isAdmin = userDatabase.role === "admin";
+
     if (!isOwner && !isAdmin) {
         throw new AppError("Samo inicijator (ili admin) može obrisati anketu", 403);
     }
