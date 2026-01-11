@@ -2,9 +2,6 @@ import { useEffect, useState } from "react";
 import "../index.css";
 import { getAuth } from "../utils/auth";
 import { escapeHtml } from "../utils/escapeHtml";
-import { API_BASE } from "../config";
-
-
 
 export default function DiscussionList({ buildingId }) {
   const [discussions, setDiscussions] = useState([]);
@@ -43,7 +40,7 @@ export default function DiscussionList({ buildingId }) {
 
     try {
       const res = await fetch(
-        `${API_BASE}/discussions?buildingId=${encodeURIComponent(bid)}`,
+        `/api/discussions?buildingId=${encodeURIComponent(bid)}`,
         { headers: { Authorization: "Bearer " + auth.token } }
       );
 
@@ -95,7 +92,7 @@ export default function DiscussionList({ buildingId }) {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/discussions`, {
+      const res = await fetch(`/api/discussions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

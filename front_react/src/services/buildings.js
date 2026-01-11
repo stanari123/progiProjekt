@@ -1,10 +1,9 @@
 import { getAuth } from "../utils/auth";
-import { API_BASE } from "../config";
 
 export async function loadBuildings() {
   const { token } = getAuth();
 
-  const res = await fetch(`${API_BASE}/buildings/my`, {
+  const res = await fetch(`/api/buildings/my`, {
     headers: { Authorization: "Bearer " + token },
   });
 
@@ -19,7 +18,7 @@ export async function loadBuildings() {
 export async function loadMembers(buildingId) {
   const { token } = getAuth();
 
-  const res = await fetch(`${API_BASE}/buildings/${buildingId}/members`, {
+  const res = await fetch(`/api/buildings/${buildingId}/members`, {
     headers: { Authorization: "Bearer " + token },
   });
 

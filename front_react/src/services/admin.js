@@ -1,10 +1,9 @@
-import { API_BASE } from "../config";
 import { getAuth } from "../utils/auth";
 
 export async function adminFetch(path, options = {}) {
   const { token } = getAuth();
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`/api${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",

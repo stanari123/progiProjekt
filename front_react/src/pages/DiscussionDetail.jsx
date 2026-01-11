@@ -6,8 +6,6 @@ import BuildingSidebar from "../components/BuildingSidebar";
 import "../index.css";
 import { getAuth } from "../utils/auth";
 import { escapeHtml } from "../utils/escapeHtml";
-import { API_BASE } from "../config";
-
 
 export default function DiscussionDetail() {
   const { id } = useParams();
@@ -29,7 +27,7 @@ export default function DiscussionDetail() {
         return;
       }
       try {
-        const res = await fetch(`${API_BASE}/discussions/${id}`, {
+        const res = await fetch(`/api/discussions/${id}`, {
           headers: { Authorization: "Bearer " + auth.token },
         });
         const d = await res.json().catch(() => ({}));
@@ -131,7 +129,7 @@ function DiscussionHeader({ discussion, onChange }) {
   const isPrivate = !!discussion.isPrivate;
 
   async function changeStatus(action) {
-    const url = `${API_BASE}/discussions/${discussion.id}/${action}`;
+    const url = `/api/discussions/${discussion.id}/${action}`;
     try {
       const res = await fetch(url, {
         method: "PATCH",
@@ -139,7 +137,7 @@ function DiscussionHeader({ discussion, onChange }) {
       });
       if (res.ok) {
         const d = await fetch(
-          `${API_BASE}/discussions/${discussion.id}`,
+          `/api/discussions/${discussion.id}`,
           { headers: { Authorization: "Bearer " + auth.token } }
         ).then((r) => r.json());
         onChange(d);
@@ -241,7 +239,7 @@ function DiscussionParticipants({ discussion, onChange }) {
       const newList = [...participants.map((p) => p.userId), selected];
 
       const res = await fetch(
-        `${API_BASE}/discussions/${discussion.id}/participants`,
+        `/api/discussions/${discussion.id}/participants`,
         {
           method: "PATCH",
           headers: {
@@ -258,7 +256,7 @@ function DiscussionParticipants({ discussion, onChange }) {
       }
 
       const res2 = await fetch(
-        `${API_BASE}/discussions/${discussion.id}`,
+        `/api/discussions/${discussion.id}`,
         { headers: { Authorization: "Bearer " + auth.token } }
       );
       const d2 = await res2.json().catch(() => ({}));
@@ -356,7 +354,7 @@ function DiscussionMessages({ discussion }) {
 
       try {
         const res = await fetch(
-          `${API_BASE}/discussions/${discussion.id}/messages`,
+          `/api/discussions/${discussion.id}/messages`,
           { headers: { Authorization: "Bearer " + auth.token } }
         );
         const data = await res.json().catch(() => []);
@@ -399,7 +397,7 @@ function DiscussionMessages({ discussion }) {
 
     try {
       const res = await fetch(
-        `${API_BASE}/discussions/${discussion.id}/messages`,
+        `/api/discussions/${discussion.id}/messages`,
         {
           method: "POST",
           headers: {
@@ -420,7 +418,7 @@ function DiscussionMessages({ discussion }) {
       setStatus("");
       // reload
       const res2 = await fetch(
-        `${API_BASE}/discussions/${discussion.id}/messages`,
+        `/api/discussions/${discussion.id}/messages`,
         { headers: { Authorization: "Bearer " + auth.token } }
       );
       const data2 = await res2.json().catch(() => []);
@@ -523,7 +521,7 @@ function DiscussionPollAndVotes({ discussion, onChange }) {
       setLoading(true);
       try {
         const res = await fetch(
-          `${API_BASE}/discussions/${discussion.id}/votes/summary`,
+          `/api/discussions/${discussion.id}/votes/summary`,
           { headers: { Authorization: "Bearer " + auth.token } }
         );
         const data = await res.json().catch(() => ({}));
@@ -548,7 +546,7 @@ function DiscussionPollAndVotes({ discussion, onChange }) {
     if (!q) return;
     try {
       const res = await fetch(
-        `${API_BASE}/discussions/${discussion.id}/poll`,
+        `/api/discussions/${discussion.id}/poll`,
         {
           method: "POST",
           headers: {
@@ -562,7 +560,7 @@ function DiscussionPollAndVotes({ discussion, onChange }) {
       if (res.ok) {
         setQuestion("");
         const d = await fetch(
-          `${API_BASE}/discussions/${discussion.id}`,
+          `/api/discussions/${discussion.id}`,
           { headers: { Authorization: "Bearer " + auth.token } }
         ).then((r) => r.json());
         onChange(d);
@@ -575,7 +573,7 @@ function DiscussionPollAndVotes({ discussion, onChange }) {
   async function deletePoll() {
     try {
       const res = await fetch(
-        `${API_BASE}/discussions/${discussion.id}/poll`,
+        `/api/discussions/${discussion.id}/poll`,
         {
           method: "DELETE",
           headers: { Authorization: "Bearer " + auth.token },
@@ -583,7 +581,7 @@ function DiscussionPollAndVotes({ discussion, onChange }) {
       );
       if (res.ok) {
         const d = await fetch(
-          `${API_BASE}/discussions/${discussion.id}`,
+          `/api/discussions/${discussion.id}`,
           { headers: { Authorization: "Bearer " + auth.token } }
         ).then((r) => r.json());
         onChange(d);
@@ -598,7 +596,7 @@ function DiscussionPollAndVotes({ discussion, onChange }) {
     if (user && user.role === "admin") return;
     try {
       await fetch(
-        `${API_BASE}/discussions/${discussion.id}/votes`,
+        `/api/discussions/${discussion.id}/votes`,
         {
           method: "POST",
           headers: {
@@ -609,7 +607,7 @@ function DiscussionPollAndVotes({ discussion, onChange }) {
       );
       // reload summary
       const res = await fetch(
-        `${API_BASE}/discussions/${discussion.id}/votes/summary`,
+        `/api/discussions/${discussion.id}/votes/summary`,
         { headers: { Authorization: "Bearer " + auth.token } }
       );
       const data = await res.json().catch(() => ({}));
