@@ -70,12 +70,23 @@ export async function getVoteSummary(pollId, user) {
         .eq("id", pollId)
         .maybeSingle();
 
-    if (pollError || !poll) {
-        console.error("Poll lookup failed:", pollError, "pollId:", pollId);
+    if (pollError) {
+        console.error("Poll lookup query error:", pollError, "pollId:", pollId);
+        throw new AppError("Greška pri dohvaćanju ankete", 500);
+    }
+
+    if (!poll) {
+        console.error("Poll not found:", "pollId:", pollId);
         throw new AppError("Anketa nije pronađena", 404);
     }
 
-    const d = await assertDiscussion(poll.discussion_id);
+    let d;
+    try {
+        d = await assertDiscussion(poll.discussion_id);
+    } catch (err) {
+        console.error("Discussion lookup failed:", err, "discussion_id:", poll.discussion_id);
+        throw err;
+    }
 
     const { data: allVotes } = await db.from("vote").select("*").eq("poll_id", pollId);
 
