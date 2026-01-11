@@ -16,7 +16,6 @@ import pollRouter from "./routes/poll.js";
 import messagesRouter from "./routes/messages.js";
 import votesRouter from "./routes/votes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
-import { getDiscussionById } from "./services/discussionDetailsService.js";
 import buildingsRouter from "./routes/buildings.js";
 import adminRouter from "./routes/admin.js";
 
@@ -47,39 +46,18 @@ app.use("/auth", oauthRouter);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "../frontend/views"));
-app.use(express.static(path.join(__dirname, "../frontend/public")));
-
-app.get("/", (req, res) => {
-    res.render("pages/index", { mode: "list" });
-});
-app.get("/admin", (req, res) => res.render("pages/admin"));
-app.get("/login", (_req, res) => res.render("pages/login"));
-app.get("/discussions/:id", (req, res, next) => {
-    const id = req.params.id;
-
-    try {
-        // lažni user koji može vidjeti sve, samo za SSR
-        const fakeUser = { sub: "ssr", role: "admin", email: "ssr@local" };
-
-        const discussion = getDiscussionById(id, fakeUser);
-
-        return res.render("pages/index", {
-            mode: "detail",
-            discussionId: discussion.id,
-            discussionTitle: discussion.title || "Rasprava",
-            discussionBody: discussion.body || "",
-            buildingId: discussion.buildingId || null,
-        });
-    } catch (err) {
-        return next(err);
-    }
-});
-
 app.get("/health", (_req, res) => {
     res.status(200).json({ status: "ok", uptime: process.uptime() });
 });
+
+// za React
+app.use(express.static(path.join(__dirname, "dist")));
+
+// SPA fallback (regex) - sve što NIJE /api ide na index.html
+app.get(/^(?!\/api).*/, (req, res) => {
+  res.sendFile(path.join(__dirname, "dist", "index.html"));
+});
+
 
 app.use(errorHandler);
 
