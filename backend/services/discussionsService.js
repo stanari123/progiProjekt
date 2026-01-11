@@ -12,15 +12,6 @@ export function buildDisplayName(user) {
 }
 
 export async function userCanAccessDiscussion(discussion, authUser) {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    // console.log("Checking access for user", authUser, "to discussion", discussion);
-
-    // Check admin role from JWT first
->>>>>>> privateDiscussions
-=======
->>>>>>> privateDiscussions
     if (authUser.role === "admin") return true;
 
     let { data: user } = await db
@@ -28,13 +19,6 @@ export async function userCanAccessDiscussion(discussion, authUser) {
         .select("*")
         .eq("email", authUser.email)
         .single();
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    // console.log("Fetched user record:", user);
->>>>>>> privateDiscussions
-=======
->>>>>>> privateDiscussions
 
     if (!user) return false;
 
@@ -51,14 +35,6 @@ export async function userCanAccessDiscussion(discussion, authUser) {
         .eq("user_id", user.id)
         .maybeSingle();
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    // console.log("Is participant:", isParticipant);
-
->>>>>>> privateDiscussions
-=======
->>>>>>> privateDiscussions
     return !!isParticipant;
 }
 
