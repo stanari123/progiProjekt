@@ -9,7 +9,7 @@ export async function getActivePoll(discussionId) {
         .eq("discussion_id", discussionId)
         .eq("closed", false)
         .order("created_at", { ascending: false })
-        .single();
+        .maybeSingle();
 
     return poll || null;
 }
@@ -64,7 +64,7 @@ export async function cancelPoll(discussionId, user) {
         .eq("email", user.email)
         .single();
 
-    const isOwner = d.owner_id === userDatabase.user_id;
+    const isOwner = d.owner_id === userDatabase.id;
     const isAdmin = userDatabase.role === "admin";
 
     if (!isOwner && !isAdmin) {
