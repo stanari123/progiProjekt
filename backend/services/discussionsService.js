@@ -97,7 +97,6 @@ export async function createDiscussion(
         throw new AppError("Zabranjen pristup zgradi", 403);
     }
 
-    // Create the discussion
     const newDiscussion = await db
         .from("discussion")
         .insert({
@@ -125,15 +124,12 @@ export async function createDiscussion(
 
     const discussionId = newDiscussion.data[0].id;
 
-    // Add participants if this is a private discussion
     if (isPrivate && Array.isArray(participants) && participants.length > 0) {
-        // Get all building members
         const { data: members } = await db
             .from("building_membership")
             .select("*")
             .eq("building_id", buildingId);
 
-        // Find user IDs that match the participant names
         const participantIds = [];
         for (const participant of participants) {
             const { data: userMatches } = await db
@@ -142,7 +138,6 @@ export async function createDiscussion(
                 .ilike("first_name", `%${participant.split(" ")[0]}%`);
 
             if (userMatches && userMatches.length > 0) {
-                // Find exact match or first match in building members
                 for (const userMatch of userMatches) {
                     const fullName =
                         `${userMatch.first_name} ${userMatch.last_name}`.trim();
@@ -162,7 +157,6 @@ export async function createDiscussion(
             }
         }
 
-        // Insert participants
         if (participantIds.length > 0) {
             const participantRecords = participantIds.map((userId) => ({
                 discussion_id: discussionId,
