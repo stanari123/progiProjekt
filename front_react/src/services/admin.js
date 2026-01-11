@@ -17,12 +17,13 @@ export async function adminFetch(path, options = {}) {
 }
 
 export function getAdminBuildings() {
-  return adminFetch("/api/admin/buildings");
+  return adminFetch("/admin/buildings");
 }
 
 export function createAdminUser(payload) {
-  return adminFetch("/api/admin/users", {
+  return adminFetch("/admin/users", {
     method: "POST",
     body: JSON.stringify(payload)
   });
 }
+
