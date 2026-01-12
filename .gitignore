@@ -10,3 +10,6 @@ Thumbs.db
 .vscode/
 
 .env
+
+# React build output
+backend/dist/
