@@ -1,24 +1,19 @@
 import { useEffect, useState } from "react";
 import "../index.css";
-import { getAuth } from "../utils/auth";
-
+import { getAuth, clearAuth } from "../utils/auth";
 
 export default function ProfilePanel({ isOpen, onClose }) {
   const [auth, setAuth] = useState({ user: null, token: null });
 
-  // Load auth info from global helper
   useEffect(() => {
-    if (getAuth) {
-      setAuth(getAuth());
-    }
+    setAuth(getAuth());
   }, [isOpen]);
 
   function handleLogout() {
-    if (window.logout) {
-      window.logout();
-    }
+    clearAuth();
     setAuth({ user: null, token: null });
     onClose();
+    window.location.href = "/login";
   }
 
   return (
@@ -29,19 +24,12 @@ export default function ProfilePanel({ isOpen, onClose }) {
     >
       <h3>Profil</h3>
 
-      <button
-        className="close-btn"
-        aria-label="Zatvori"
-        type="button"
-        onClick={onClose}
-      >
+      <button className="close-btn" aria-label="Zatvori" type="button" onClick={onClose}>
         ×
       </button>
 
       <div id="profileContent" className="muted">
-        {auth.user
-          ? `${auth.user.name || auth.user.email}`
-          : "Niste prijavljeni."}
+        {auth.user ? `${auth.user.name || auth.user.email}` : "Niste prijavljeni."}
       </div>
 
       <div className="actions">
