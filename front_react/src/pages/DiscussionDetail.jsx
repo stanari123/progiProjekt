@@ -500,27 +500,21 @@ function DiscussionPollAndVotes({ discussion, onChange }) {
     // Load votes summary
     useEffect(() => {
         async function load() {
-            if (!discussion.id) return;
+            if (!discussion.id || !discussion.poll) {
+                setLoading(false);
+                return;
+            }
             setLoading(true);
             try {
-                // If there is an active poll, fetch its vote summary by pollId
-                if (discussion.poll?.id && pollActive) {
-                    const res = await fetch(
-                        `/api/polls/${discussion.poll.id}/vote-summary`,
-                        { headers: { Authorization: "Bearer " + auth.token } }
-                    );
-                    const data = await res.json().catch(() => ({}));
+                const res = await fetch(`/api/polls/${discussion.poll.id}/vote-summary`, {
+                    headers: { Authorization: "Bearer " + auth.token },
+                });
+                const data = await res.json().catch(() => ({}));
 
-                    if (!res.ok) {
-                        setSummary({
-                            error: data.error || "Greška pri dohvaćanju glasanja.",
-                        });
-                    } else {
-                        setSummary(data);
-                    }
+                if (!res.ok) {
+                    setSummary({ error: data.error });
                 } else {
-                    // No active poll
-                    setSummary(null);
+                    setSummary(data);
                 }
             } catch (err) {
                 console.error(err);
@@ -530,7 +524,7 @@ function DiscussionPollAndVotes({ discussion, onChange }) {
             }
         }
         load();
-    }, [discussion.id, discussion.poll, discussion.status]);
+    }, [discussion.id, discussion.poll]);
 
     async function createPoll() {
         const q = question.trim();
@@ -577,9 +571,12 @@ function DiscussionPollAndVotes({ discussion, onChange }) {
     async function castVote(value) {
         const user = auth.user;
         if (user && user.role === "admin") return;
+        if (!discussion.poll || !discussion.poll.id) {
+            console.error("No active poll");
+            return;
+        }
         try {
-            if (!discussion.poll?.id) return;
-            await fetch(`/api/polls/${discussion.poll.id}/vote`, {
+            const res = await fetch(`/api/polls/${discussion.poll.id}/vote`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -587,12 +584,18 @@ function DiscussionPollAndVotes({ discussion, onChange }) {
                 },
                 body: JSON.stringify({ value }),
             });
+
+            if (!res.ok) {
+                console.error("Vote failed");
+                return;
+            }
+
             // reload summary
-            const res = await fetch(`/api/polls/${discussion.poll.id}/vote-summary`, {
+            const res2 = await fetch(`/api/polls/${discussion.poll.id}/vote-summary`, {
                 headers: { Authorization: "Bearer " + auth.token },
             });
-            const data = await res.json().catch(() => ({}));
-            if (res.ok) setSummary(data);
+            const data = await res2.json().catch(() => ({}));
+            if (res2.ok) setSummary(data);
         } catch (err) {
             console.error(err);
         }
