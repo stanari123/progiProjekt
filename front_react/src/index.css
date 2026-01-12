@@ -41,7 +41,7 @@ body {
     gap: 16px;
     padding: 16px;
     align-items: flex-start;
-    width: 100vw;
+    width: calc(100vw - 32px); /* padding adjustment from topbar */
     max-height: calc(100vh - 56px); /* problem je topbar visina pa sam ju oduzeo */
 }
 
