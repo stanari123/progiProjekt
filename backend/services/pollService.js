@@ -64,7 +64,7 @@ export async function cancelPoll(discussionId, user) {
         .eq("email", user.email)
         .single();
 
-    const isOwner = d.owner_id === userDatabase.user_id;
+    const isOwner = d.owner_id === userDatabase.id;
     const isAdmin = userDatabase.role === "admin";
 
     if (!isOwner && !isAdmin) {
