@@ -149,6 +149,11 @@ function DiscussionHeader({ discussion, onChange }) {
 
     return (
         <section className="card" id="discussionCard">
+            <div className="top-back-row">
+                <a href="/" className="btn" id="backToIndex">
+                    ⟵ Natrag
+                </a>
+            </div>
             <div className="card-header">
                 <h1 id="title">{discussion.title || "Rasprava"}</h1>
                 <div className="header-actions">
@@ -178,9 +183,6 @@ function DiscussionHeader({ discussion, onChange }) {
                             </button>
                         </>
                     )}
-                    <a href="/" className="btn" id="backToIndex">
-                        ⟵ Natrag
-                    </a>
                 </div>
             </div>
 
@@ -205,7 +207,7 @@ function DiscussionHeader({ discussion, onChange }) {
 
             <p id="body" style={{ marginTop: 10 }}>
                 {canViewContent && discussion.status !== "deleted"
-                    ? discussion.body || "…"
+                    ? discussion.body || ""
                     : "Ovo je privatna rasprava. Nemate pristup sadržaju."}
             </p>
 
@@ -735,3 +737,4 @@ function DiscussionPollAndVotes({ discussion, onChange }) {
         </section>
     );
 }
+
