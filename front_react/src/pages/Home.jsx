@@ -4,6 +4,7 @@ import ProfilePanel from "../components/ProfilePanel";
 import BuildingSidebar from "../components/BuildingSidebar";
 import "../index.css";
 import DiscussionList from "../components/DiscussionList";
+import BuildingMapPanel from "../components/BuildingMapPanel";
 
 
 export default function Home() {
@@ -30,7 +31,9 @@ export default function Home() {
 
 
         {/* RIGHT COLUMN */}
-        <div className="right-col"></div>
+        <div className="right-col">
+          <BuildingMapPanel buildingId={buildingId} />
+        </div>
       </main>
     </>
   );
