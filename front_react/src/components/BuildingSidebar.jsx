@@ -5,14 +5,20 @@ import { escapeHtml } from "../utils/escapeHtml";
 import { loadBuildings, loadMembers } from "../services/buildings";
 import { createBuilding } from "../services/admin";
 
-export default function BuildingSidebar({ onBuildingChange }) {
+export default function BuildingSidebar({
+  onBuildingChange,
+  disableSelector = false,
+  selectedBuildingId = null,
+}) {
   const [buildings, setBuildings] = useState([]);
   const [selectedId, setSelectedId] = useState("");
+
   const [members, setMembers] = useState({
     admins: [],
     reps: [],
     owners: [],
   });
+
   const { user } = getAuth();
   const isAdmin = (user?.role || "").toLowerCase() === "admin";
 
@@ -56,11 +62,9 @@ export default function BuildingSidebar({ onBuildingChange }) {
       setSaving(true);
       const created = await createBuilding({ name, address });
 
-      // refresh buildings list
       const data = await loadBuildings();
       setBuildings(Array.isArray(data) ? data : []);
 
-      // auto-select newly created building if backend returns id
       if (created?.id) {
         setSelectedId(created.id);
         localStorage.setItem("lastBuildingId", created.id);
@@ -74,7 +78,6 @@ export default function BuildingSidebar({ onBuildingChange }) {
       setSaving(false);
     }
   }
-
 
   // Load buildings on mount
   useEffect(() => {
@@ -99,12 +102,16 @@ export default function BuildingSidebar({ onBuildingChange }) {
 
         setBuildings(data);
 
-        // Restore last selected building
+        if (selectedBuildingId && data.some((b) => String(b.id) === String(selectedBuildingId))) {
+          setSelectedId(String(selectedBuildingId));
+          return;
+        }
+
         const saved = localStorage.getItem("lastBuildingId");
         const initial =
-          saved && data.some((b) => b.id === saved)
-            ? saved
-            : data[0].id;
+          saved && data.some((b) => String(b.id) === String(saved))
+            ? String(saved)
+            : String(data[0].id);
 
         setSelectedId(initial);
         localStorage.setItem("lastBuildingId", initial);
@@ -120,6 +127,14 @@ export default function BuildingSidebar({ onBuildingChange }) {
 
     init();
   }, []);
+
+  useEffect(() => {
+    if (!selectedBuildingId) return;
+    const v = String(selectedBuildingId);
+    if (v && v !== String(selectedId)) {
+      setSelectedId(v);
+    }
+  }, [selectedBuildingId, selectedId]);
 
   // Load members when building changes
   useEffect(() => {
@@ -167,125 +182,128 @@ export default function BuildingSidebar({ onBuildingChange }) {
   }, [selectedId]);
 
   return (
-    <div style={{ margin: "10px 0" }}>
-      <label htmlFor="buildingSel">Zgrada:</label>
+    <div className="sidebar">
+      <div className="sidebar-top">
+        <label htmlFor="buildingSel">Zgrada:</label>
 
-      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-        <select
-          value={selectedId}
-          onChange={(e) => {
-            const id = e.target.value;
-            setSelectedId(id);
-            localStorage.setItem("lastBuildingId", id);
-            if (onBuildingChange) onBuildingChange(id || null);
-          }}
-        >
-          {buildings.length === 0 ? (
-            <option value="">Nema zgrada</option>
-          ) : (
-            buildings.map((b) => (
-              <option key={b.id} value={b.id}>
-                {escapeHtml(b.name)}
-              </option>
-            ))
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <select
+            id="buildingSel"
+            value={selectedId}
+            disabled={disableSelector}
+            onChange={(e) => {
+              const id = e.target.value;
+              setSelectedId(id);
+              localStorage.setItem("lastBuildingId", id);
+              if (onBuildingChange) onBuildingChange(id || null);
+            }}
+          >
+            {buildings.length === 0 ? (
+              <option value="">Nema zgrada</option>
+            ) : (
+              buildings.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {escapeHtml(b.name)}
+                </option>
+              ))
+            )}
+          </select>
+
+          {isAdmin && (
+            <button type="button" className="btn" onClick={openAdd}>
+              + Nova zgrada
+            </button>
           )}
-        </select>
+        </div>
 
-        {isAdmin && (
-          <button type="button" className="btn" onClick={openAdd}>
-            + Nova zgrada
-          </button>
-        )}
-      </div>
+        {showAdd && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.35)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+              padding: "16px",
+            }}
+          >
+            <div className="card" style={{ maxWidth: "520px", width: "100%" }}>
+              <h3>Nova zgrada</h3>
 
-      {showAdd && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.35)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-            padding: "16px",
-          }}
-        >
-          <div className="card" style={{ maxWidth: "520px", width: "100%" }}>
-            <h3>Nova zgrada</h3>
+              <div style={{ display: "grid", gap: "8px", marginTop: "10px" }}>
+                <input
+                  placeholder="Naziv zgrade"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                />
+                <input
+                  placeholder="Ulica"
+                  value={newStreet}
+                  onChange={(e) => setNewStreet(e.target.value)}
+                />
+                <input
+                  placeholder="Broj"
+                  value={newNumber}
+                  onChange={(e) => setNewNumber(e.target.value)}
+                />
+                <input
+                  placeholder="Grad"
+                  value={newCity}
+                  onChange={(e) => setNewCity(e.target.value)}
+                />
 
-            <div style={{ display: "grid", gap: "8px", marginTop: "10px" }}>
-              <input
-                placeholder="Naziv zgrade"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-              />
-              <input
-                placeholder="Ulica"
-                value={newStreet}
-                onChange={(e) => setNewStreet(e.target.value)}
-              />
-              <input
-                placeholder="Broj"
-                value={newNumber}
-                onChange={(e) => setNewNumber(e.target.value)}
-              />
-              <input
-                placeholder="Grad"
-                value={newCity}
-                onChange={(e) => setNewCity(e.target.value)}
-              />
+                {addErr && (
+                  <div className="muted" style={{ color: "crimson" }}>
+                    {addErr}
+                  </div>
+                )}
 
-              {addErr && <div className="muted" style={{ color: "crimson" }}>{addErr}</div>}
-
-              <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                <button type="button" className="btn" onClick={closeAdd} disabled={saving}>
-                  Odustani
-                </button>
-                <button type="button" className="btn" onClick={saveBuilding} disabled={saving}>
-                  {saving ? "Spremanje..." : "Spremi"}
-                </button>
+                <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                  <button type="button" className="btn" onClick={closeAdd} disabled={saving}>
+                    Odustani
+                  </button>
+                  <button type="button" className="btn" onClick={saveBuilding} disabled={saving}>
+                    {saving ? "Spremanje..." : "Spremi"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
+      <div className="sidebar-members">
+        <div style={{ margin: "8px 0" }}>
+          <h3>Članovi zgrade</h3>
 
-      <div style={{ margin: "16px 0" }}>
-        <h3>Članovi zgrade</h3>
-
-        <div className="card" style={{ marginTop: "8px" }}>
-          <div className="muted" style={{ fontWeight: 600, marginBottom: 4 }}>
-            Admin
+          <div className="card" style={{ marginTop: "8px" }}>
+            <div className="muted" style={{ fontWeight: 600, marginBottom: 4 }}>
+              Admin
+            </div>
+            <ul className="muted" style={{ margin: 0, paddingLeft: 18 }}>
+              {members.admins.length ? members.admins.map((n, i) => <li key={i}>{n}</li>) : <li>—</li>}
+            </ul>
           </div>
-          <ul className="muted" style={{ margin: 0, paddingLeft: 18 }}>
-            {members.admins.length
-              ? members.admins.map((n, i) => <li key={i}>{n}</li>)
-              : <li>—</li>}
-          </ul>
-        </div>
 
-        <div className="card" style={{ marginTop: "8px" }}>
-          <div className="muted" style={{ fontWeight: 600, marginBottom: 4 }}>
-            Predstavnici
+          <div className="card" style={{ marginTop: "8px" }}>
+            <div className="muted" style={{ fontWeight: 600, marginBottom: 4 }}>
+              Predstavnici
+            </div>
+            <ul className="muted" style={{ margin: 0, paddingLeft: 18 }}>
+              {members.reps.length ? members.reps.map((n, i) => <li key={i}>{n}</li>) : <li>—</li>}
+            </ul>
           </div>
-          <ul className="muted" style={{ margin: 0, paddingLeft: 18 }}>
-            {members.reps.length
-              ? members.reps.map((n, i) => <li key={i}>{n}</li>)
-              : <li>—</li>}
-          </ul>
-        </div>
 
-        <div className="card" style={{ marginTop: "8px" }}>
-          <div className="muted" style={{ fontWeight: 600, marginBottom: 4 }}>
-            Suvlasnici
+          <div className="card" style={{ marginTop: "8px" }}>
+            <div className="muted" style={{ fontWeight: 600, marginBottom: 4 }}>
+              Suvlasnici
+            </div>
+            <ul className="muted" style={{ margin: 0, paddingLeft: 18 }}>
+              {members.owners.length ? members.owners.map((n, i) => <li key={i}>{n}</li>) : <li>—</li>}
+            </ul>
           </div>
-          <ul className="muted" style={{ margin: 0, paddingLeft: 18 }}>
-            {members.owners.length
-              ? members.owners.map((n, i) => <li key={i}>{n}</li>)
-              : <li>—</li>}
-          </ul>
         </div>
       </div>
     </div>

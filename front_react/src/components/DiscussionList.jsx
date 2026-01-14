@@ -189,8 +189,8 @@ export default function DiscussionList({ buildingId }) {
         <section className="card">
             <div className="card-header">
                 <h2>Rasprave</h2>
-
-                {auth.token && (
+                <div className="header-actions">
+                    {auth.token && (
                     <button
                         className="btn primary"
                         onClick={() => setShowForm(true)}
@@ -198,7 +198,8 @@ export default function DiscussionList({ buildingId }) {
                     >
                         ➕ Nova rasprava
                     </button>
-                )}
+                    )}
+                </div>
             </div>
 
             {/* New Discussion Form */}

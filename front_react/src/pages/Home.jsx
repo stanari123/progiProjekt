@@ -2,10 +2,9 @@ import { useState } from "react";
 import Topbar from "../components/Topbar";
 import ProfilePanel from "../components/ProfilePanel";
 import BuildingSidebar from "../components/BuildingSidebar";
-import "../index.css";
 import DiscussionList from "../components/DiscussionList";
 import BuildingMapPanel from "../components/BuildingMapPanel";
-
+import "../index.css";
 
 export default function Home() {
   const [profileOpen, setProfileOpen] = useState(false);
@@ -15,22 +14,17 @@ export default function Home() {
     <>
       <Topbar onProfileToggle={() => setProfileOpen(true)} />
 
-      <ProfilePanel
-        isOpen={profileOpen}
-        onClose={() => setProfileOpen(false)}
-      />
+      <ProfilePanel isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
 
       <main className="layout">
-        {/* LEFT COLUMN */}
-        <BuildingSidebar onBuildingChange={setBuildingId} />
+        <div className="left-col">
+          <BuildingSidebar onBuildingChange={setBuildingId} />
+        </div>
 
-        {/* CENTER COLUMN */}
         <div className="center-col">
           <DiscussionList buildingId={buildingId} />
         </div>
 
-
-        {/* RIGHT COLUMN */}
         <div className="right-col">
           <BuildingMapPanel buildingId={buildingId} />
         </div>
