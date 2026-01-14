@@ -26,3 +26,9 @@ export function createAdminUser(payload) {
   });
 }
 
+export function createBuilding(payload) {
+  return adminFetch("/admin/buildings", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}

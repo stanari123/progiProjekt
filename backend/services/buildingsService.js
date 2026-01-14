@@ -106,3 +106,24 @@ export async function listMyBuildings(user) {
 
     return buildings || [];
 }
+
+export async function createBuilding(payload = {}) {
+  const name = (payload.name || "").trim();
+  const address = (payload.address || "").trim();
+
+  if (!name || !address) {
+    throw new AppError("Naziv i adresa su obavezni", 400);
+  }
+
+  const { data: inserted, error } = await db
+    .from("building")
+    .insert({ name, address })
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new AppError("Greška pri spremanju zgrade", 500);
+  }
+
+  return inserted;
+}

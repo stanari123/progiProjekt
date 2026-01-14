@@ -3,6 +3,7 @@ import "../index.css";
 import { getAuth } from "../utils/auth";
 import { escapeHtml } from "../utils/escapeHtml";
 import { loadBuildings, loadMembers } from "../services/buildings";
+import { createBuilding } from "../services/admin";
 
 export default function BuildingSidebar({ onBuildingChange }) {
   const [buildings, setBuildings] = useState([]);
@@ -12,6 +13,68 @@ export default function BuildingSidebar({ onBuildingChange }) {
     reps: [],
     owners: [],
   });
+  const { user } = getAuth();
+  const isAdmin = (user?.role || "").toLowerCase() === "admin";
+
+  const [showAdd, setShowAdd] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newStreet, setNewStreet] = useState("");
+  const [newNumber, setNewNumber] = useState("");
+  const [newCity, setNewCity] = useState("");
+  const [addErr, setAddErr] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  function openAdd() {
+    setAddErr("");
+    setNewName("");
+    setNewStreet("");
+    setNewNumber("");
+    setNewCity("");
+    setShowAdd(true);
+  }
+
+  function closeAdd() {
+    setShowAdd(false);
+  }
+
+  async function saveBuilding() {
+    setAddErr("");
+
+    const name = newName.trim();
+    const street = newStreet.trim();
+    const number = newNumber.trim();
+    const city = newCity.trim();
+
+    if (!name || !street || !number || !city) {
+      setAddErr("Molim popuni sva polja.");
+      return;
+    }
+
+    const address = `${street} ${number}, ${city}`;
+
+    try {
+      setSaving(true);
+      const created = await createBuilding({ name, address });
+
+      // refresh buildings list
+      const data = await loadBuildings();
+      setBuildings(Array.isArray(data) ? data : []);
+
+      // auto-select newly created building if backend returns id
+      if (created?.id) {
+        setSelectedId(created.id);
+        localStorage.setItem("lastBuildingId", created.id);
+        if (onBuildingChange) onBuildingChange(created.id);
+      }
+
+      setShowAdd(false);
+    } catch (e) {
+      setAddErr(e?.message || "Greška pri dodavanju zgrade.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
 
   // Load buildings on mount
   useEffect(() => {
@@ -107,26 +170,87 @@ export default function BuildingSidebar({ onBuildingChange }) {
     <div style={{ margin: "10px 0" }}>
       <label htmlFor="buildingSel">Zgrada:</label>
 
-      <select
-        id="buildingSel"
-        value={selectedId}
-        onChange={(e) => {
-          const id = e.target.value;
-          setSelectedId(id);
-          localStorage.setItem("lastBuildingId", id);
-          if (onBuildingChange) onBuildingChange(id);
-        }}
-      >
-        {buildings.length === 0 && (
-          <option value="">Nema zgrada</option>
-        )}
+      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        <select
+          value={selectedId}
+          onChange={(e) => {
+            const id = e.target.value;
+            setSelectedId(id);
+            localStorage.setItem("lastBuildingId", id);
+            if (onBuildingChange) onBuildingChange(id || null);
+          }}
+        >
+          {buildings.length === 0 ? (
+            <option value="">Nema zgrada</option>
+          ) : (
+            buildings.map((b) => (
+              <option key={b.id} value={b.id}>
+                {escapeHtml(b.name)}
+              </option>
+            ))
+          )}
+        </select>
 
-        {buildings.map((b) => (
-          <option key={b.id} value={b.id}>
-            {escapeHtml(b.name)}
-          </option>
-        ))}
-      </select>
+        {isAdmin && (
+          <button type="button" className="btn" onClick={openAdd}>
+            + Nova zgrada
+          </button>
+        )}
+      </div>
+
+      {showAdd && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.35)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "16px",
+          }}
+        >
+          <div className="card" style={{ maxWidth: "520px", width: "100%" }}>
+            <h3>Nova zgrada</h3>
+
+            <div style={{ display: "grid", gap: "8px", marginTop: "10px" }}>
+              <input
+                placeholder="Naziv zgrade"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+              />
+              <input
+                placeholder="Ulica"
+                value={newStreet}
+                onChange={(e) => setNewStreet(e.target.value)}
+              />
+              <input
+                placeholder="Broj"
+                value={newNumber}
+                onChange={(e) => setNewNumber(e.target.value)}
+              />
+              <input
+                placeholder="Grad"
+                value={newCity}
+                onChange={(e) => setNewCity(e.target.value)}
+              />
+
+              {addErr && <div className="muted" style={{ color: "crimson" }}>{addErr}</div>}
+
+              <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                <button type="button" className="btn" onClick={closeAdd} disabled={saving}>
+                  Odustani
+                </button>
+                <button type="button" className="btn" onClick={saveBuilding} disabled={saving}>
+                  {saving ? "Spremanje..." : "Spremi"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       <div style={{ margin: "16px 0" }}>
         <h3>Članovi zgrade</h3>
