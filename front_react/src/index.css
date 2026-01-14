@@ -222,6 +222,10 @@ body {
     padding-right: 110px;
 }
 
+.top-back-row {
+    margin-bottom: 14px;
+}
+
 #discussionCard .card-header #backToIndex {
     position: absolute;
     top: 0;
