@@ -1,12 +1,25 @@
 import "../index.css";
-
+import { useNavigate } from "react-router-dom";
+import { getAuth } from "../utils/auth";
 
 export default function Topbar({ onProfileToggle }) {
+  const navigate = useNavigate();
+  const { user } = getAuth();
+
+  function handleHomeClick() {
+    if (user?.role === "admin") {
+      navigate("/admin");
+    } else {
+      navigate("/");
+    }
+  }
+
   return (
     <header className="topbar">
       <button
         className="topbar-title"
-        onClick={() => (window.location.href = "/")}
+        onClick={handleHomeClick}
+        type="button"
       >
         🏢 StanBlog
       </button>

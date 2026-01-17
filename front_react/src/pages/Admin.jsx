@@ -3,10 +3,14 @@ import "../admin/admin.css";
 import { useEffect } from "react";
 import { getAdminBuildings, createAdminUser } from "../services/admin";
 import { getAuth } from "../utils/auth";
+import Topbar from "../components/Topbar";
+import ProfilePanel from "../components/ProfilePanel";
 
 
 export default function Admin() {
   const [showNewUser, setShowNewUser] = useState(false);
+  const [showStanPlan, setShowStanPlan] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const { user } = getAuth();
 
   // FRONTEND PROTECTION
@@ -17,35 +21,34 @@ export default function Admin() {
 
 
   return (
-    <main>
-      <div className="admin-cards">
-        <div
-          className="admin-card"
-          onClick={() => (window.location.href = "/")}
-        >
-          <img src="/images/buildings-placeholder.jpg" alt="Zgrade" />
-          <h2>Zgrade</h2>
+    <>
+      <Topbar onProfileToggle={() => setProfileOpen(true)} />
+      <ProfilePanel isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
+
+      <main className="admin-page">
+        <div className="admin-cards">
+          <div className="admin-card" onClick={() => (window.location.href = "/")}>
+            <img src="/images/building.png" alt="Zgrade" />
+            <h2>Zgrade</h2>
+          </div>
+
+          <div className="admin-card" onClick={() => setShowNewUser(true)}>
+            <img src="/images/user.png" alt="Novi korisnik" />
+            <h2>Novi korisnik</h2>
+          </div>
+
+          <div className="admin-card" onClick={() => setShowStanPlan(true)}>
+            <img src="/images/plan.png" alt="StanPlan" />
+            <h2>StanPlan</h2>
+          </div>
         </div>
 
-        <div
-          className="admin-card"
-          onClick={() => setShowNewUser(true)}
-        >
-          <img src="/images/placeholder2.jpg" alt="Novi korisnik" />
-          <h2>Novi korisnik</h2>
-        </div>
-
-        <div className="admin-card">
-          <img src="/images/placeholder3.jpg" alt="StanPlan" />
-          <h2>StanPlan</h2>
-        </div>
-      </div>
-
-      {showNewUser && (
-        <NewUserModal onClose={() => setShowNewUser(false)} />
-      )}
-    </main>
+        {showNewUser && <NewUserModal onClose={() => setShowNewUser(false)} />}
+        {showStanPlan && <StanPlanModal onClose={() => setShowStanPlan(false)} />}
+      </main>
+    </>
   );
+
 }
 
 function NewUserModal({ onClose }) {
@@ -170,4 +173,99 @@ function NewUserForm({ onClose }) {
     </>
   );
 
+}
+
+function StanPlanModal({ onClose }) {
+  return (
+    <div className="modal-backdrop open" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>StanPlan poveznica</h2>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+
+        <StanPlanForm onClose={onClose} />
+      </div>
+    </div>
+  );
+}
+
+function StanPlanForm({ onClose }) {
+  const STORAGE_KEY = "stanplan_link";
+
+  const [savedLink, setSavedLink] = useState(() => localStorage.getItem(STORAGE_KEY) || "");
+  const [link, setLink] = useState(() => localStorage.getItem(STORAGE_KEY) || "");
+  const [feedback, setFeedback] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const trimmed = link.trim();
+  const trimmedSaved = savedLink.trim();
+
+  const isSaveDisabled = saving || trimmed.length === 0 || trimmed === trimmedSaved;
+
+  function isValidUrl(value) {
+    try {
+      const v = value.startsWith("http://") || value.startsWith("https://")
+        ? value
+        : `https://${value}`;
+      new URL(v);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function handleSave() {
+    setFeedback("");
+
+    if (trimmed.length === 0) {
+      setFeedback("Unesi poveznicu.");
+      return;
+    }
+    if (!isValidUrl(trimmed)) {
+      setFeedback("Poveznica nije valjana (URL).");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // spremanje lokalno (kasnije zamijeni API pozivom)
+      localStorage.setItem(STORAGE_KEY, trimmed);
+      setSavedLink(trimmed);
+      setFeedback("Spremljeno.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="modal-body">
+        <label className="form-row">
+          <span>Poveznica</span>
+          <input
+            type="text"
+            placeholder="npr. https://..."
+            value={link}
+            onChange={(e) => {
+              setLink(e.target.value);
+              setFeedback("");
+            }}
+          />
+        </label>
+
+        <p className="modal-feedback">{feedback}</p>
+      </div>
+
+      <div className="modal-footer">
+        <button className="btn-secondary" onClick={onClose} type="button">
+          Odustani
+        </button>
+
+        <button className="btn-primary" onClick={handleSave} disabled={isSaveDisabled} type="button">
+          {saving ? "Spremanje..." : "Spremi"}
+        </button>
+      </div>
+    </>
+  );
 }

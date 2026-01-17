@@ -268,7 +268,7 @@ body {
 
 #discussionCard .card-header {
   position: relative;
-  padding-right: 320px; /* dovoljno za natrag + open/close */
+  padding-right: 320px;
 }
 
 #discussionCard .card-header .header-actions {
@@ -401,4 +401,25 @@ body {
   position: absolute;
   top: 0;
   right: 0;
+}
+
+.profile-fields{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.profile-row{
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profile-row .label{
+  opacity: 0.75;
+}
+
+.profile-row .value{
+  font-weight: 600;
+  text-align: right;
 }
