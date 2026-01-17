@@ -18,27 +18,29 @@ router.get("/:id", requireAuth, async (req, res, next) => {
     }
 });
 
-router.patch("/:id/close", requireAuth, (req, res, next) => {
+router.patch("/:id/close", requireAuth, async (req, res, next) => {
     try {
-        const d = closeDiscussion(req.params.id, req.user);
+        const d = await closeDiscussion(req.params.id, req.user);
         return res.json(d);
     } catch (e) {
         next(e);
     }
 });
 
-router.patch("/:id/open", requireAuth, (req, res, next) => {
+router.patch("/:id/open", requireAuth, async (req, res, next) => {
     try {
-        return res.json(reopenDiscussion(req.params.id, req.user));
+        const d = await reopenDiscussion(req.params.id, req.user);
+        return res.json(d);
     } catch (e) {
         next(e);
     }
 });
 
-router.patch("/:id/participants", requireAuth, (req, res, next) => {
+router.patch("/:id/participants", requireAuth, async (req, res, next) => {
     try {
         const { participants = [] } = req.body || {};
-        return res.json(setDiscussionParticipants(req.params.id, req.user, participants));
+        const out = await setDiscussionParticipants(req.params.id, req.user, participants);
+        return res.json(out);
     } catch (e) {
         next(e);
     }

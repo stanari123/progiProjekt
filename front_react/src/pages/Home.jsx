@@ -5,8 +5,18 @@ import BuildingSidebar from "../components/BuildingSidebar";
 import DiscussionList from "../components/DiscussionList";
 import BuildingMapPanel from "../components/BuildingMapPanel";
 import "../index.css";
+import { getAuth } from "../utils/auth";
+import { useEffect } from "react";
 
 export default function Home() {
+  const { token } = getAuth();
+
+  useEffect(() => {
+    if (!token) {
+      window.location.href = "/login";
+    }
+  }, []);
+
   const [profileOpen, setProfileOpen] = useState(false);
   const [buildingId, setBuildingId] = useState(null);
 

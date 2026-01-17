@@ -7,7 +7,12 @@ export default function Topbar({ onProfileToggle }) {
   const { user } = getAuth();
 
   function handleHomeClick() {
-    if (user?.role === "admin") {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    if (user.role === "admin") {
       navigate("/admin");
     } else {
       navigate("/");

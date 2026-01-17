@@ -15,10 +15,9 @@ export default function Admin() {
 
   // FRONTEND PROTECTION
   if (!user || user.role !== "admin") {
-    window.location.href = "/";
+    window.location.href = "/login";
     return null;
   }
-
 
   return (
     <>

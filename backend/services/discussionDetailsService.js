@@ -108,34 +108,30 @@ export async function getDiscussionById(id, authUser) {
     };
 }
 
-export function closeDiscussion(id, authUser) {
-    const d = assertDiscussion(id);
-    const roleInB = getRoleInBuilding(authUser.sub, d.buildingId);
-    const isOwner = d.ownerId === authUser.sub;
+export async function closeDiscussion(id) {
+    const { data: updated, error } = await db
+        .from("discussion")
+        .update({ status: "zatvoreno" })
+        .eq("id", id)
+        .select("*")
+        .single();
 
-    if (!(authUser.role === "admin" || roleInB === "predstavnik" || isOwner)) {
-        throw new AppError(
-            "Samo predstavnik, admin ili inicijator može zatvoriti raspravu",
-            403
-        );
-    }
-    d.status = "closed";
-    return d;
+    if (error) throw new AppError(error.message || "Greška pri zatvaranju rasprave", 500);
+    if (!updated) throw new AppError("Rasprava ne postoji", 404);
+    return updated;
 }
 
-export function reopenDiscussion(id, authUser) {
-    const d = assertDiscussion(id);
-    const roleInB = getRoleInBuilding(authUser.sub, d.buildingId);
-    const isOwner = d.ownerId === authUser.sub;
+export async function reopenDiscussion(id) {
+    const { data: updated, error } = await db
+        .from("discussion")
+        .update({ status: "otvoreno" })
+        .eq("id", id)
+        .select("*")
+        .single();
 
-    if (!(authUser.role === "admin" || roleInB === "predstavnik" || isOwner)) {
-        throw new AppError(
-            "Samo predstavnik, admin ili inicijator može otvoriti raspravu",
-            403
-        );
-    }
-    d.status = "open";
-    return d;
+    if (error) throw new AppError(error.message || "Greška pri otvaranju rasprave", 500);
+    if (!updated) throw new AppError("Rasprava ne postoji", 404);
+    return updated;
 }
 
 export async function setDiscussionParticipants(discussionId, authUser, participants) {

@@ -155,7 +155,7 @@ function DiscussionHeader({ discussion, onChange, onBack }) {
 
   const canModerate = !!discussion.canModerate;
   const canViewContent = discussion.canViewContent !== false;
-  const isPrivate = !!discussion.isPrivate;
+  const isPrivate = discussion.visibility === "privatno";
 
   async function changeStatus(action) {
     const url = `/api/discussions/${discussion.id}/${action}`;
@@ -196,7 +196,7 @@ function DiscussionHeader({ discussion, onChange, onBack }) {
                 id="closeBtn"
                 className="btn"
                 type="button"
-                style={{ display: discussion.status === "open" ? "" : "none" }}
+                style={{ display: discussion.status === "otvoreno" ? "" : "none" }}
                 onClick={() => changeStatus("close")}
               >
                 Zatvori raspravu
@@ -206,7 +206,7 @@ function DiscussionHeader({ discussion, onChange, onBack }) {
                 id="openBtn"
                 className="btn"
                 type="button"
-                style={{ display: discussion.status === "open" ? "none" : "" }}
+                style={{ display: discussion.status === "otvoreno" ? "none" : "" }}
                 onClick={() => changeStatus("open")}
               >
                 Otvori raspravu
@@ -218,7 +218,7 @@ function DiscussionHeader({ discussion, onChange, onBack }) {
 
 
       <div className="meta muted" id="meta" style={{ marginTop: 4 }}>
-        <span className="badge">{(discussion.status || "open").toUpperCase()}</span>{" "}
+        <span className="badge">{(discussion.status || "otvoreno").toUpperCase()}</span>{" "}
         {isPrivate ? (
           <span className="badge badge-private">Privatna rasprava</span>
         ) : (
@@ -266,7 +266,10 @@ function DiscussionParticipants({ discussion, onChange }) {
     setMsg("");
 
     try {
-      const newList = [...participants.map((p) => p.userId), selected];
+      const newList = [
+        ...participants.map((p) => p.userId).filter(Boolean),
+        selected,
+      ];
 
       const res = await fetch(`/api/discussions/${discussion.id}/participants`, {
         method: "PATCH",
@@ -313,7 +316,7 @@ function DiscussionParticipants({ discussion, onChange }) {
         )}
       </ul>
 
-      {discussion.status === "open" && addable.length > 0 && (
+      {discussion.status === "otvoreno" && addable.length > 0 && (
         <div style={{ marginTop: 6 }}>
           <label className="muted" style={{ display: "block", marginBottom: 4 }}>
             Dodaj sudionika:
@@ -363,7 +366,7 @@ function DiscussionMessages({ discussion }) {
   const [status, setStatus] = useState("");
 
   const canViewContent = discussion.canViewContent !== false;
-  const isClosed = discussion.status === "closed";
+  const isClosed = discussion.status === "zatvoreno";
 
   useEffect(() => {
     async function load() {
@@ -526,7 +529,7 @@ function DiscussionPollAndVotes({ discussion, onChange }) {
     const [loading, setLoading] = useState(true);
 
     const pollActive = discussion.poll && discussion.poll.active !== false;
-    const closed = discussion.status === "closed";
+    const closed = discussion.status === "zatvoreno";
     const canModerate = !!discussion.canModerate;
     const canViewContent = discussion.canViewContent !== false;
 
