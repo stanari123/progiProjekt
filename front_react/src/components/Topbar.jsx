@@ -8,14 +8,14 @@ export default function Topbar({ onProfileToggle }) {
 
   function handleHomeClick() {
     if (!user) {
-      navigate("/login");
+      window.location.href = "/login";
       return;
     }
 
     if (user.role === "admin") {
-      navigate("/admin");
+      window.location.href = "/admin";
     } else {
-      navigate("/");
+      window.location.href = "/";
     }
   }
 

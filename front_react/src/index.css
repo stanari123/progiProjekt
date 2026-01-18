@@ -229,8 +229,6 @@ body {
 }
 
 .card-header {
-  position: relative;
-  padding-right: 120px;
   min-height: 36px;
   display: flex;
   align-items: center;
@@ -355,12 +353,6 @@ body {
   max-width: none;
 }
 
-#discList .card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
 
 #discList .card-header .btn {
   width: auto;
@@ -369,11 +361,20 @@ body {
   padding-right: 14px;
 }
 
+#discList .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 #discList .header-actions {
   display: flex;
   justify-content: flex-end;
   flex: 0 0 auto;
 }
+
+
 
 /* Discussion details: 2 stupca (poruke lijevo, anketa desno) */
 .disc-two-col {
@@ -397,12 +398,6 @@ body {
   padding-right: 170px;
 }
 
-#discList .card-header .header-actions{
-  position: absolute;
-  top: 0;
-  right: 0;
-}
-
 .profile-fields{
   display: flex;
   flex-direction: column;
@@ -422,4 +417,12 @@ body {
 .profile-row .value{
   font-weight: 600;
   text-align: right;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
 }

@@ -1,8 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "../index.css";
 import { getAuth } from "../utils/auth";
 import { escapeHtml } from "../utils/escapeHtml";
 import { loadMembers } from "../services/buildings";
+
+function toBool(v) {
+    return v === true || v === "true" || v === 1 || v === "1";
+}
 
 export default function DiscussionList({ buildingId }) {
     const [discussions, setDiscussions] = useState([]);
@@ -14,6 +18,7 @@ export default function DiscussionList({ buildingId }) {
     const [newBody, setNewBody] = useState("");
     const [newPrivate, setNewPrivate] = useState(false);
     const [newMsg, setNewMsg] = useState("");
+
     const [members, setMembers] = useState([]);
     const [selectedParticipants, setSelectedParticipants] = useState([]);
 
@@ -34,7 +39,7 @@ export default function DiscussionList({ buildingId }) {
         }
 
         loadDiscussions(buildingId);
-    }, [buildingId]);
+    }, [buildingId, auth.token]);
 
     async function loadDiscussions(bid) {
         setLoading(true);
@@ -50,7 +55,7 @@ export default function DiscussionList({ buildingId }) {
             const data = await res.json().catch(() => []);
 
             if (!res.ok) {
-                setFeedback(data.error || "Greška pri dohvaćanju rasprava.");
+                setFeedback(data?.error || "Greška pri dohvaćanju rasprava.");
                 return;
             }
 
@@ -68,9 +73,8 @@ export default function DiscussionList({ buildingId }) {
         }
     }
 
-    // Load members for private discussion, excluding the creator by name
     useEffect(() => {
-        async function load() {
+        async function run() {
             try {
                 if (!newPrivate || !buildingId || !auth.token) {
                     setMembers([]);
@@ -79,32 +83,24 @@ export default function DiscussionList({ buildingId }) {
                 }
 
                 const list = await loadMembers(buildingId);
-                const myFirst = (auth.user?.firstName || "").trim();
-                const myLast = (auth.user?.lastName || "").trim();
-                const myFull = [myFirst, myLast]
-                    .filter(Boolean)
-                    .join(" ")
-                    .trim()
-                    .toLowerCase();
+
+                const myId = auth.user?.id || auth.user?.userId || auth.user?.sub || null;
 
                 const filtered = Array.isArray(list)
                     ? list
                           .map((m) => ({
-                              name: [m.firstName, m.lastName]
-                                  .filter(Boolean)
-                                  .join(" ")
-                                  .trim(),
+                              userId: m.userId || m.id,
+                              name: [m.firstName, m.lastName].filter(Boolean).join(" ").trim(),
                               roleInBuilding: m.roleInBuilding || "",
                           }))
-                          .filter((m) =>
-                              myFull ? m.name.toLowerCase() !== myFull : true
-                          )
+                          .filter((m) => !!m.userId)
+                          .filter((m) => (myId ? m.userId !== myId : true))
                     : [];
 
                 setMembers(filtered);
-                // Keep only selections that are still present
+
                 setSelectedParticipants((prev) =>
-                    prev.filter((n) => filtered.some((m) => m.name === n))
+                    prev.filter((id) => filtered.some((m) => m.userId === id))
                 );
             } catch (e) {
                 console.error("Greška pri dohvaćanju članova zgrade:", e);
@@ -113,11 +109,10 @@ export default function DiscussionList({ buildingId }) {
             }
         }
 
-        load();
-    }, [newPrivate, buildingId, auth.token]);
+        run();
+    }, [newPrivate, buildingId, auth.token, auth.user]);
 
-    // Group discussions
-    function groupDiscussions() {
+    const grouped = useMemo(() => {
         const publicOnes = [];
         const privateYes = [];
         const privateNo = [];
@@ -125,13 +120,18 @@ export default function DiscussionList({ buildingId }) {
         for (const d of discussions) {
             if (!d) continue;
 
-            if (d.visibility === "javno") publicOnes.push(d);
-            else if (d.canViewContent === false) privateNo.push(d);
-            else privateYes.push(d);
+            if (d.visibility === "javno") {
+                publicOnes.push(d);
+                continue;
+            }
+
+            const canView = toBool(d.canViewContent);
+            if (canView) privateYes.push(d);
+            else privateNo.push(d);
         }
 
         return { publicOnes, privateYes, privateNo };
-    }
+    }, [discussions]);
 
     async function handleCreate(e) {
         e.preventDefault();
@@ -163,7 +163,7 @@ export default function DiscussionList({ buildingId }) {
             const data = await res.json().catch(() => ({}));
 
             if (!res.ok) {
-                setNewMsg(data.error || "Greška pri stvaranju rasprave.");
+                setNewMsg(data?.error || "Greška pri stvaranju rasprave.");
                 return;
             }
 
@@ -183,7 +183,7 @@ export default function DiscussionList({ buildingId }) {
         }
     }
 
-    const { publicOnes, privateYes, privateNo } = groupDiscussions();
+    const { publicOnes, privateYes, privateNo } = grouped;
 
     return (
         <section className="card">
@@ -191,18 +191,17 @@ export default function DiscussionList({ buildingId }) {
                 <h2>Rasprave</h2>
                 <div className="header-actions">
                     {auth.token && (
-                    <button
-                        className="btn primary"
-                        onClick={() => setShowForm(true)}
-                        style={{ display: showForm ? "none" : "" }}
-                    >
-                        ➕ Nova rasprava
-                    </button>
+                        <button
+                            className="btn primary"
+                            onClick={() => setShowForm(true)}
+                            style={{ display: showForm ? "none" : "" }}
+                        >
+                            ➕ Nova rasprava
+                        </button>
                     )}
                 </div>
             </div>
 
-            {/* New Discussion Form */}
             {showForm && (
                 <form
                     onSubmit={handleCreate}
@@ -260,14 +259,13 @@ export default function DiscussionList({ buildingId }) {
                                     </span>
                                 )}
                             </div>
+
                             <div className="muted" style={{ marginBottom: 12 }}>
-                                Inicijator rasprave je automatski uključen i nije
-                                prikazan.
+                                Inicijator rasprave je automatski uključen i nije prikazan.
                             </div>
+
                             {members.length === 0 ? (
-                                <div className="muted">
-                                    Nema dostupnih članova za dodati.
-                                </div>
+                                <div className="muted">Nema dostupnih članova za dodati.</div>
                             ) : (
                                 <div
                                     style={{
@@ -279,19 +277,16 @@ export default function DiscussionList({ buildingId }) {
                                     }}
                                 >
                                     {members.map((m) => {
-                                        const isSelected = selectedParticipants.includes(
-                                            m.name
-                                        );
+                                        const isSelected = selectedParticipants.includes(m.userId);
+
                                         return (
                                             <label
-                                                key={m.name}
+                                                key={m.userId}
                                                 style={{
                                                     display: "flex",
                                                     alignItems: "center",
                                                     padding: "8px",
-                                                    backgroundColor: isSelected
-                                                        ? "#eef2ff"
-                                                        : "transparent",
+                                                    backgroundColor: isSelected ? "#eef2ff" : "transparent",
                                                     borderRadius: "4px",
                                                     cursor: "pointer",
                                                     marginBottom: "4px",
@@ -299,15 +294,11 @@ export default function DiscussionList({ buildingId }) {
                                                 }}
                                                 onMouseEnter={(e) =>
                                                     (e.currentTarget.style.backgroundColor =
-                                                        isSelected
-                                                            ? "#e0e7ff"
-                                                            : "#f9fafb")
+                                                        isSelected ? "#e0e7ff" : "#f9fafb")
                                                 }
                                                 onMouseLeave={(e) =>
                                                     (e.currentTarget.style.backgroundColor =
-                                                        isSelected
-                                                            ? "#eef2ff"
-                                                            : "transparent")
+                                                        isSelected ? "#eef2ff" : "transparent")
                                                 }
                                             >
                                                 <input
@@ -315,32 +306,20 @@ export default function DiscussionList({ buildingId }) {
                                                     checked={isSelected}
                                                     onChange={(e) => {
                                                         if (e.target.checked) {
-                                                            setSelectedParticipants([
-                                                                ...selectedParticipants,
-                                                                m.name,
-                                                            ]);
+                                                            setSelectedParticipants((prev) => [...prev, m.userId]);
                                                         } else {
-                                                            setSelectedParticipants(
-                                                                selectedParticipants.filter(
-                                                                    (n) => n !== m.name
-                                                                )
+                                                            setSelectedParticipants((prev) =>
+                                                                prev.filter((id) => id !== m.userId)
                                                             );
                                                         }
                                                     }}
-                                                    style={{
-                                                        marginRight: "8px",
-                                                        cursor: "pointer",
-                                                    }}
+                                                    style={{ marginRight: "8px", cursor: "pointer" }}
                                                 />
+
                                                 <div style={{ flex: 1 }}>
-                                                    <div style={{ fontWeight: 500 }}>
-                                                        {m.name}
-                                                    </div>
+                                                    <div style={{ fontWeight: 500 }}>{m.name}</div>
                                                     {m.roleInBuilding && (
-                                                        <div
-                                                            className="muted"
-                                                            style={{ fontSize: "0.85em" }}
-                                                        >
+                                                        <div className="muted" style={{ fontSize: "0.85em" }}>
                                                             {m.roleInBuilding}
                                                         </div>
                                                     )}
@@ -372,13 +351,10 @@ export default function DiscussionList({ buildingId }) {
                         </button>
                     </div>
 
-                    <div className="muted" style={{ marginTop: "6px" }}>
-                        {newMsg}
-                    </div>
+                    <div className="muted" style={{ marginTop: "6px" }}>{newMsg}</div>
                 </form>
             )}
 
-            {/* Discussion List */}
             <div id="discList">
                 {loading && <div className="muted">Učitavam…</div>}
 
@@ -401,9 +377,8 @@ export default function DiscussionList({ buildingId }) {
 
                         {privateYes.length > 0 && (
                             <>
-                                <h3 style={{ marginTop: "18px" }}>
-                                    🔒 Privatne (dostupne vama)
-                                </h3>
+                                <h3 style={{ marginTop: "18px" }}>🔒 Privatne (dostupne vama)</h3>
+
                                 {privateYes.map((d) => (
                                     <DiscussionCard key={d.id} data={d} />
                                 ))}
@@ -412,9 +387,7 @@ export default function DiscussionList({ buildingId }) {
 
                         {privateNo.length > 0 && (
                             <>
-                                <h3 style={{ marginTop: "18px" }}>
-                                    🚫 Privatne (nedostupne)
-                                </h3>
+                                <h3 style={{ marginTop: "18px" }}>🚫 Privatne (nedostupne)</h3>
                                 {privateNo.map((d) => (
                                     <DiscussionCard key={d.id} data={d} muted />
                                 ))}
@@ -429,10 +402,14 @@ export default function DiscussionList({ buildingId }) {
 
 function DiscussionCard({ data, muted }) {
     const isPrivate = data.visibility === "privatno";
-    const canView = data.canViewContent;
+    const canView = toBool(data.canViewContent);
+
+    const isLocked = isPrivate && !canView;
+
+    const statusLabel = data.status ? String(data.status).toUpperCase() : "";
 
     const handleClick = () => {
-        if (isPrivate && canView === false) return;
+        if (isLocked) return;
         window.location.href = `/discussions/${data.id}`;
     };
 
@@ -440,22 +417,27 @@ function DiscussionCard({ data, muted }) {
         <article
             className={`card discussion-card ${muted ? "disc-muted" : ""}`}
             onClick={handleClick}
-            style={{
-                cursor: isPrivate && canView === false ? "not-allowed" : "pointer",
-            }}
+            aria-disabled={isLocked}
+            style={{ cursor: isLocked ? "not-allowed" : "pointer" }}
         >
             <h4>{escapeHtml(data.title || "Bez naslova")}</h4>
 
-            {(data.visibility === "javno" || data.canViewContent) &&
-                data.poll_description && <p>{escapeHtml(data.poll_description)}</p>}
+            {(data.visibility === "javno" || canView) && data.poll_description && (
+                <p>{escapeHtml(data.poll_description)}</p>
+            )}
+
+            {isLocked && (
+                <p className="muted" style={{ marginTop: 6 }}>
+                    🔒 Privatna rasprava — nemate pristup sadržaju.
+                </p>
+            )}
 
             <div className="muted">
                 {escapeHtml(data.ownerName || data.ownerEmail || "#" + data.id)}
-                {data.created_at
-                    ? " · " + new Date(data.created_at).toLocaleString()
-                    : ""}
-                {data.status ? " · " + data.status.toUpperCase() : ""}
-                {isPrivate ? " · 🔒 Privatna" : ""}
+                {data.created_at ? " · " + new Date(data.created_at).toLocaleString() : ""}
+                {statusLabel ? " · " + statusLabel : ""}
+                {isPrivate ? " · 🔒 Privatna" : " · 🌐 Javna"}
+                {isLocked ? " · 🚫 Nedostupna" : ""}
             </div>
         </article>
     );

@@ -3,6 +3,10 @@ import { AppError } from "../utils/AppError.js";
 import { userInBuilding } from "./buildingsService.js";
 
 // helpers
+function isAdminRole(role) {
+    return (role || "").toLowerCase() === "admin";
+}
+
 export function buildDisplayName(user) {
     if (!user) return "(nepoznat)";
     const full = [user.firstName, user.lastName].filter(Boolean).join(" ");
@@ -12,68 +16,103 @@ export function buildDisplayName(user) {
 }
 
 export async function userCanAccessDiscussion(discussion, authUser) {
-    if (authUser.role === "admin") return true;
+    if (!discussion) return false;
 
-    let { data: user } = await db
-        .from("app_user")
-        .select("*")
-        .eq("email", authUser.email)
-        .single();
+    const userId = authUser?.sub;
+    const role = authUser?.role;
 
-    if (!user) return false;
+    if (isAdminRole(role)) return true;
+    if (!userId) return false;
 
     if (discussion.visibility === "javno") return true;
+    if (discussion.owner_id === userId) return true;
 
-    if (user.role === "admin") return true;
-
-    if (discussion.owner_id === user.id) return true;
-
-    let { data: isParticipant } = await db
+    const { data: rows, error } = await db
         .from("discussion_participant")
-        .select("*")
+        .select("user_id")
         .eq("discussion_id", discussion.id)
-        .eq("user_id", user.id)
-        .maybeSingle();
+        .eq("user_id", userId);
 
-    return !!isParticipant;
+    if (error) return false;
+    return Array.isArray(rows) && rows.length > 0;
 }
 
 export async function assertDiscussion(id) {
-    const getDiscussion = await db.from("discussion").select("*").eq("id", id).single();
+    const { data, error } = await db
+        .from("discussion")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-    if (!getDiscussion) throw new AppError("Diskusija nije pronađena", 404);
-    return getDiscussion.data;
+    if (error || !data) throw new AppError("Diskusija nije pronađena", 404);
+    return data;
 }
 
 export async function listDiscussions(authUser, buildingId) {
     if (!buildingId) throw new AppError("buildingId je obavezan", 400);
 
-    const { data: userRecord } = await db
-        .from("app_user")
-        .select("*")
-        .eq("email", authUser.email)
-        .single();
+    const userId = authUser?.sub;
+    if (!userId) throw new AppError("Neispravan token (nema sub)", 401);
 
-    if (authUser.role !== "admin" && !userInBuilding(userRecord.id, buildingId)) {
+    const role = authUser?.role;
+
+    if (!isAdminRole(role) && !(await userInBuilding(userId, buildingId))) {
         throw new AppError("Zabranjen pristup zgradi", 403);
     }
 
-    const discussionsArray = await db
+    const { data: discussions, error: dErr } = await db
         .from("discussion")
         .select("*")
         .eq("building_id", buildingId);
 
-    for (const discussion of discussionsArray.data) {
-        const owner = await db
-            .from("app_user")
-            .select("*")
-            .eq("id", discussion.owner_id)
-            .single();
+    if (dErr) throw new AppError(dErr.message || "Greška pri dohvaćanju rasprava", 500);
 
-        discussion.ownerName = owner.data.first_name + " " + owner.data.last_name;
+    const list = discussions || [];
+    if (list.length === 0) return [];
+
+    const discussionIds = list.map((d) => d.id);
+
+    let participantSet = new Set();
+    if (!isAdminRole(role) && discussionIds.length > 0) {
+        const { data: partRows, error: pErr } = await db
+            .from("discussion_participant")
+            .select("discussion_id")
+            .eq("user_id", userId)
+            .in("discussion_id", discussionIds);
+
+        if (pErr) {
+            console.error("participantSet error:", pErr);
+        } else {
+            participantSet = new Set((partRows || []).map((r) => r.discussion_id));
+        }
     }
 
-    return discussionsArray.data;
+    const ownerIds = [...new Set(list.map((d) => d.owner_id).filter(Boolean))];
+    let ownerMap = new Map();
+
+    if (ownerIds.length > 0) {
+        const { data: owners, error: oErr } = await db
+            .from("app_user")
+            .select("id,email,role,first_name,last_name")
+            .in("id", ownerIds);
+
+        if (oErr) {
+            console.error("owner lookup error:", oErr);
+        } else {
+            ownerMap = new Map((owners || []).map((o) => [o.id, buildDisplayName(o)]));
+        }
+    }
+
+    for (const d of list) {
+        d.ownerName = ownerMap.get(d.owner_id) || d.ownerName || "";
+
+        if (isAdminRole(role)) d.canViewContent = true;
+        else if (d.visibility === "javno") d.canViewContent = true;
+        else if (d.owner_id === userId) d.canViewContent = true;
+        else d.canViewContent = participantSet.has(d.id) === true;
+    }
+
+    return list;
 }
 
 export async function createDiscussion(
@@ -84,89 +123,63 @@ export async function createDiscussion(
     isPrivate = false,
     participants = []
 ) {
-    if (!title) throw new AppError("Naslov je obavezan", 400);
+    if (!title?.trim()) throw new AppError("Naslov je obavezan", 400);
     if (!buildingId) throw new AppError("buildingId je obavezan", 400);
 
-    const { data: userRecord } = await db
+    const userId = authUser?.sub;
+    const role = authUser?.role;
+
+    if (!userId) throw new AppError("Neispravan token (nema sub)", 401);
+
+    const { data: userRecord, error: uErr } = await db
         .from("app_user")
         .select("*")
-        .eq("email", authUser.email)
+        .eq("id", userId)
         .single();
 
-    if (authUser.role !== "admin" && !userInBuilding(userRecord.id, buildingId)) {
+    if (uErr || !userRecord) throw new AppError("Korisnik nije pronađen", 401);
+
+    if (!isAdminRole(role) && !(await userInBuilding(userRecord.id, buildingId))) {
         throw new AppError("Zabranjen pristup zgradi", 403);
     }
 
-    const newDiscussion = await db
+    const { data: inserted, error: insErr } = await db
         .from("discussion")
         .insert({
-            title: title,
+            title: title.trim(),
             building_id: buildingId,
             owner_id: userRecord.id,
             visibility: isPrivate ? "privatno" : "javno",
             status: "otvoreno",
-            poll_description: body,
+            poll_description: (body || "").trim(),
         })
         .select();
 
-    if (newDiscussion.error) {
-        console.error("Supabase insert error:", newDiscussion.error);
-        throw new AppError(
-            newDiscussion.error.message || "Greška pri stvaranju rasprave",
-            500
-        );
-    }
+    if (insErr) throw new AppError(insErr.message || "Greška pri stvaranju rasprave", 500);
+    if (!inserted || inserted.length === 0) throw new AppError("Greška pri stvaranju rasprave", 500);
 
-    if (!newDiscussion.data || newDiscussion.data.length === 0) {
-        console.error("No data returned from insert:", newDiscussion);
-        throw new AppError("Greška pri stvaranju rasprave", 500);
-    }
-
-    const discussionId = newDiscussion.data[0].id;
+    const discussionId = inserted[0].id;
 
     if (isPrivate && Array.isArray(participants) && participants.length > 0) {
-        const { data: members } = await db
-            .from("building_membership")
-            .select("*")
-            .eq("building_id", buildingId);
+        const ids = [...new Set(participants)].filter(Boolean);
 
-        const participantIds = [];
-        for (const participant of participants) {
-            const { data: userMatches } = await db
-                .from("app_user")
-                .select("*")
-                .ilike("first_name", `%${participant.split(" ")[0]}%`);
-
-            if (userMatches && userMatches.length > 0) {
-                for (const userMatch of userMatches) {
-                    const fullName =
-                        `${userMatch.first_name} ${userMatch.last_name}`.trim();
-                    if (fullName === participant) {
-                        const isMemberOfBuilding = members.some(
-                            (m) => m.user_id === userMatch.id
-                        );
-                        if (
-                            isMemberOfBuilding &&
-                            !participantIds.includes(userMatch.id)
-                        ) {
-                            participantIds.push(userMatch.id);
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (participantIds.length > 0) {
-            const participantRecords = participantIds.map((userId) => ({
+        if (ids.length > 0) {
+            const participantRecords = ids.map((uid) => ({
                 discussion_id: discussionId,
-                user_id: userId,
+                user_id: uid,
                 can_post: true,
             }));
 
-            await db.from("discussion_participant").insert(participantRecords);
+            const { error: pInsErr } = await db
+                .from("discussion_participant")
+                .insert(participantRecords);
+
+            if (pInsErr) {
+                console.error("insert discussion_participant error:", pInsErr);
+                throw new AppError("Greška pri dodavanju sudionika", 500);
+            }
         }
     }
 
-    return newDiscussion.data;
+    return inserted;
 }
