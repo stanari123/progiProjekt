@@ -9,7 +9,7 @@ function isAdminRole(role) {
 
 export function buildDisplayName(user) {
     if (!user) return "(nepoznat)";
-    const full = [user.firstName, user.lastName].filter(Boolean).join(" ");
+    const full = [user.first_name, user.last_name].filter(Boolean).join(" ");
     if (full) return full;
     if (user.role === "admin") return "Administrator";
     return user.email || "(nepoznat)";

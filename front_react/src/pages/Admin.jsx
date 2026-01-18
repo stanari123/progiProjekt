@@ -1,11 +1,9 @@
-import { useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import "../admin/admin.css";
-import { useEffect } from "react";
 import { getAdminBuildings, createAdminUser } from "../services/admin";
 import { getAuth } from "../utils/auth";
 import Topbar from "../components/Topbar";
 import ProfilePanel from "../components/ProfilePanel";
-
 
 export default function Admin() {
   const [showNewUser, setShowNewUser] = useState(false);
@@ -47,16 +45,17 @@ export default function Admin() {
       </main>
     </>
   );
-
 }
 
 function NewUserModal({ onClose }) {
   return (
     <div className="modal-backdrop open" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Novi korisnik</h2>
-          <button className="modal-close" onClick={onClose}>×</button>
+          <button className="modal-close" onClick={onClose}>
+            ×
+          </button>
         </div>
 
         <NewUserForm onClose={onClose} />
@@ -75,7 +74,10 @@ function NewUserForm({ onClose }) {
   const [selectedBuildings, setSelectedBuildings] = useState([]);
   const [feedback, setFeedback] = useState("");
 
-  // Load buildings when modal opens
+  // ključna stvar: desni panel prati visinu lijevog stupca
+  const leftColRef = useRef(null);
+  const [rightMaxHeight, setRightMaxHeight] = useState(220);
+
   useEffect(() => {
     async function load() {
       const data = await getAdminBuildings();
@@ -84,12 +86,29 @@ function NewUserForm({ onClose }) {
     load();
   }, []);
 
+  useLayoutEffect(() => {
+    const el = leftColRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const h = el.getBoundingClientRect().height;
+      setRightMaxHeight(Math.max(160, Math.floor(h)));
+    };
+
+    update();
+
+    const ro = new ResizeObserver(() => update());
+    ro.observe(el);
+
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
   function toggleBuilding(id) {
-    setSelectedBuildings((prev) =>
-      prev.includes(id)
-        ? prev.filter((b) => b !== id)
-        : [...prev, id]
-    );
+    setSelectedBuildings((prev) => (prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]));
   }
 
   async function handleSave() {
@@ -104,7 +123,7 @@ function NewUserForm({ onClose }) {
       email,
       password,
       role,
-      buildingIds: selectedBuildings
+      buildingIds: selectedBuildings,
     });
 
     if (res?.message && res.error) {
@@ -115,63 +134,78 @@ function NewUserForm({ onClose }) {
     onClose();
   }
 
+  const buildingsLabel = useMemo(() => {
+    return selectedBuildings.length > 0 ? `Zgrade (${selectedBuildings.length})` : "Zgrade";
+  }, [selectedBuildings.length]);
+
   return (
     <>
-      <div className="modal-body">
-        <label className="form-row">
-          <span>Ime</span>
-          <input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-        </label>
+      <div className="modal-body modal-two-col">
+        {/* LEFT */}
+        <div className="modal-col left" ref={leftColRef}>
+          <label className="form-row">
+            <span>Ime</span>
+            <input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+          </label>
 
-        <label className="form-row">
-          <span>Prezime</span>
-          <input value={lastName} onChange={(e) => setLastName(e.target.value)} />
-        </label>
+          <label className="form-row">
+            <span>Prezime</span>
+            <input value={lastName} onChange={(e) => setLastName(e.target.value)} />
+          </label>
 
-        <label className="form-row">
-          <span>E-pošta</span>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        </label>
+          <label className="form-row">
+            <span>E-pošta</span>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </label>
 
-        <label className="form-row">
-          <span>Lozinka</span>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        </label>
+          <label className="form-row">
+            <span>Lozinka</span>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          </label>
 
-        <label className="form-row">
-          <span>Uloga</span>
-          <select value={role} onChange={(e) => setRole(e.target.value)}>
-            <option value="predstavnik">Predstavnik</option>
-            <option value="suvlasnik">Suvlasnik</option>
-          </select>
-        </label>
+          <label className="form-row">
+            <span>Uloga</span>
+            <select value={role} onChange={(e) => setRole(e.target.value)}>
+              <option value="predstavnik">Predstavnik</option>
+              <option value="suvlasnik">Suvlasnik</option>
+            </select>
+          </label>
 
-        <label className="form-row">
-          <span>Zgrade</span>
-          <div className="buildings-list">
-            {buildings.length === 0 && <p className="text-muted">Nema zgrada.</p>}
-            {buildings.map((b) => (
-              <label key={b.id} className="building-item">
-                <input
-                  type="checkbox"
-                  checked={selectedBuildings.includes(b.id)}
-                  onChange={() => toggleBuilding(b.id)}
-                />
-                <span>{b.name}{b.address ? " – " + b.address : ""}</span>
-              </label>
-            ))}
+          <p className="modal-feedback">{feedback}</p>
+        </div>
+
+        {/* RIGHT */}
+        <div className="modal-col right">
+          <div className="buildings-panel" style={{ height: rightMaxHeight }}>
+            <div className="buildings-title">{buildingsLabel}</div>
+
+            <div className="buildings-list buildings-scroll">
+              {buildings.length === 0 && <p className="text-muted">Nema zgrada.</p>}
+              {buildings.map((b) => (
+                <label key={b.id} className="building-item">
+                  <input
+                    type="checkbox"
+                    checked={selectedBuildings.includes(b.id)}
+                    onChange={() => toggleBuilding(b.id)}
+                  />
+                  <span>
+                    {b.name}
+                    {b.address ? " – " + b.address : ""}
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
-        </label>
-
-        <p className="modal-feedback">{feedback}</p>
+        </div>
       </div>
 
       <div className="modal-footer">
-        <button className="btn-primary" onClick={handleSave}>Spremi</button>
+        <button className="btn-primary" onClick={handleSave}>
+          Spremi
+        </button>
       </div>
     </>
   );
-
 }
 
 function StanPlanModal({ onClose }) {
@@ -180,7 +214,9 @@ function StanPlanModal({ onClose }) {
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>StanPlan poveznica</h2>
-          <button className="modal-close" onClick={onClose}>×</button>
+          <button className="modal-close" onClick={onClose}>
+            ×
+          </button>
         </div>
 
         <StanPlanForm onClose={onClose} />
@@ -199,14 +235,11 @@ function StanPlanForm({ onClose }) {
 
   const trimmed = link.trim();
   const trimmedSaved = savedLink.trim();
-
   const isSaveDisabled = saving || trimmed.length === 0 || trimmed === trimmedSaved;
 
   function isValidUrl(value) {
     try {
-      const v = value.startsWith("http://") || value.startsWith("https://")
-        ? value
-        : `https://${value}`;
+      const v = value.startsWith("http://") || value.startsWith("https://") ? value : `https://${value}`;
       new URL(v);
       return true;
     } catch {
