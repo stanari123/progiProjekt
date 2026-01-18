@@ -15,7 +15,7 @@ export class User {
 
 export async function findUserByEmail(email = "") {
     const lowercaseEmail = email.toLowerCase();
-    const { data, error } = await db
+    const { data } = await db
         .from("app_user")
         .select("*")
         .eq("email", lowercaseEmail)
@@ -34,14 +34,24 @@ export async function findUserByEmail(email = "") {
 }
 
 async function addMembership(userId, buildingIds, role) {
-    // todo: check if building exists
+    const ids = Array.isArray(buildingIds)
+        ? [...new Set(buildingIds.map((x) => String(x)).filter(Boolean))]
+        : [];
 
-    for (const buildingId of buildingIds) {
-        await db.from("building_membership").insert({
-            user_id: userId,
-            building_id: buildingId,
-            user_role: role,
-        });
+    if (ids.length === 0) return;
+
+    const rows = ids.map((buildingId) => ({
+        user_id: userId,
+        building_id: buildingId,
+        user_role: role,
+    }));
+
+    const { error } = await db
+        .from("building_membership")
+        .upsert(rows, { onConflict: "user_id,building_id" });
+
+    if (error) {
+        throw new AppError("Greška pri dodavanju korisnika u zgradu.", 500);
     }
 }
 
@@ -90,7 +100,74 @@ export async function createUser(currentUser, newUser) {
         passHash
     );
 
-    await addMembership(data[0].id, newUser.buildingIds, newUser.role);
+    await addMembership(data[0].id, newUser.buildingIds || [], newUser.role);
 
     return user;
+}
+
+export async function listUsers() {
+    const { data, error } = await db
+        .from("app_user")
+        .select("id, first_name, last_name, email, role")
+        .order("last_name", { ascending: true });
+
+    if (error) throw new AppError("Greška pri dohvaćanju korisnika.", 500);
+
+    return (data || []).map((u) => ({
+        id: u.id,
+        firstName: u.first_name,
+        lastName: u.last_name,
+        email: u.email,
+        role: u.role,
+    }));
+}
+
+export async function addBuildingMembers(buildingId, userIds) {
+    if (!buildingId) throw new AppError("buildingId je obavezan.", 400);
+
+    const ids = Array.isArray(userIds)
+        ? [...new Set(userIds.map((x) => String(x)).filter(Boolean))]
+        : [];
+
+    if (ids.length === 0) return { added: 0 };
+
+    const { data: users, error: uErr } = await db
+        .from("app_user")
+        .select("id, role")
+        .in("id", ids);
+
+    if (uErr) throw new AppError("Greška pri dohvaćanju korisnika.", 500);
+
+    const rows = (users || []).map((u) => ({
+        user_id: u.id,
+        building_id: buildingId,
+        user_role: u.role || "suvlasnik",
+    }));
+
+    const { error: insErr } = await db
+        .from("building_membership")
+        .upsert(rows, { onConflict: "user_id,building_id" });
+    if (insErr) throw new AppError("Greška pri dodavanju članova u zgradu.", 500);
+
+    return { added: rows.length };
+}
+
+export async function removeBuildingMembers(buildingId, userIds) {
+    if (!buildingId) throw new AppError("buildingId je obavezan.", 400);
+
+    const ids = Array.isArray(userIds)
+        ? [...new Set(userIds.map((x) => String(x)).filter(Boolean))]
+        : [];
+
+    if (ids.length === 0) return { removed: 0 };
+
+    const { error, count } = await db
+        .from("building_membership")
+        .delete({ count: "exact" })
+        .eq("building_id", buildingId)
+        .in("user_id", ids);
+
+    if (error) throw new AppError("Greška pri uklanjanju članova iz zgrade.", 500);
+
+    return { removed: count || 0 };
 }

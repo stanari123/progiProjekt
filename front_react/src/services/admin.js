@@ -6,13 +6,15 @@ export async function adminFetch(path, options = {}) {
   const res = await fetch(`/api${path}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
       Authorization: "Bearer " + token,
-      ...(options.headers || {})
-    }
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {}),
+    },
   });
 
-  return res.json();
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
+  return data;
 }
 
 export function getAdminBuildings() {
@@ -22,7 +24,7 @@ export function getAdminBuildings() {
 export function createAdminUser(payload) {
   return adminFetch("/admin/users", {
     method: "POST",
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   });
 }
 
@@ -30,5 +32,23 @@ export function createBuilding(payload) {
   return adminFetch("/admin/buildings", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export function getAllUsers() {
+  return adminFetch("/admin/users");
+}
+
+export function addMembersToBuilding(buildingId, userIds) {
+  return adminFetch(`/admin/buildings/${buildingId}/members/add`, {
+    method: "POST",
+    body: JSON.stringify({ userIds }),
+  });
+}
+
+export function removeMembersFromBuilding(buildingId, userIds) {
+  return adminFetch(`/admin/buildings/${buildingId}/members/remove`, {
+    method: "POST",
+    body: JSON.stringify({ userIds }),
   });
 }

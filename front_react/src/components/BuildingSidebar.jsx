@@ -1,9 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "../index.css";
 import { getAuth } from "../utils/auth";
 import { escapeHtml } from "../utils/escapeHtml";
 import { loadBuildings, loadMembers } from "../services/buildings";
-import { createBuilding } from "../services/admin";
+import {
+  createBuilding,
+  getAllUsers,
+  addMembersToBuilding,
+  removeMembersFromBuilding,
+} from "../services/admin";
 
 export default function BuildingSidebar({
   onBuildingChange,
@@ -17,6 +22,7 @@ export default function BuildingSidebar({
     admins: [],
     reps: [],
     owners: [],
+    all: [],
   });
 
   const { user } = getAuth();
@@ -29,6 +35,8 @@ export default function BuildingSidebar({
   const [newCity, setNewCity] = useState("");
   const [addErr, setAddErr] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const [editOpen, setEditOpen] = useState(false);
 
   function openAdd() {
     setAddErr("");
@@ -137,48 +145,52 @@ export default function BuildingSidebar({
   }, [selectedBuildingId, selectedId]);
 
   // Load members when building changes
-  useEffect(() => {
-    async function load() {
-      const { token } = getAuth();
-      if (!token || !selectedId) {
-        setMembers({ admins: [], reps: [], owners: [] });
+  async function refreshMembers(bid) {
+    const { token } = getAuth();
+    if (!token || !bid) {
+      setMembers({ admins: [], reps: [], owners: [], all: [] });
+      return;
+    }
+
+    try {
+      const data = await loadMembers(bid);
+      if (!Array.isArray(data)) {
+        setMembers({ admins: [], reps: [], owners: [], all: [] });
         return;
       }
 
-      try {
-        const data = await loadMembers(selectedId);
+      const admins = [];
+      const reps = [];
+      const owners = [];
+      const all = [];
 
-        if (!Array.isArray(data)) {
-          setMembers({ admins: [], reps: [], owners: [] });
-          return;
-        }
+      for (const m of data) {
+        const id = m.userId;
+        if (!id) continue;
 
-        const admins = [];
-        const reps = [];
-        const owners = [];
+        const name =
+          [m.firstName, m.lastName].filter(Boolean).join(" ").trim() ||
+          m.email ||
+          String(id);
 
-        for (const m of data) {
-          const name =
-            [m.firstName, m.lastName].filter(Boolean).join(" ") ||
-            m.email ||
-            m.userId;
+        const role = (m.roleInBuilding || "").toLowerCase();
+        const entry = { id: String(id), name, role };
 
-          const safe = escapeHtml(name);
-          const role = (m.roleInBuilding || "").toLowerCase();
-
-          if (role === "admin") admins.push(safe);
-          else if (role === "predstavnik") reps.push(safe);
-          else owners.push(safe);
-        }
-
-        setMembers({ admins, reps, owners });
-      } catch (err) {
-        console.error("Error loading members:", err);
-        setMembers({ admins: [], reps: [], owners: [] });
+        all.push(entry);
+        if (role === "admin") admins.push(entry);
+        else if (role === "predstavnik") reps.push(entry);
+        else owners.push(entry);
       }
-    }
 
-    if (selectedId) load();
+      setMembers({ admins, reps, owners, all });
+    } catch (err) {
+      console.error("Error loading members:", err);
+      setMembers({ admins: [], reps: [], owners: [], all: [] });
+    }
+  }
+
+  useEffect(() => {
+    if (selectedId) refreshMembers(selectedId);
   }, [selectedId]);
 
   return (
@@ -211,7 +223,7 @@ export default function BuildingSidebar({
 
           {isAdmin && (
             <button type="button" className="btn" onClick={openAdd}>
-              + Nova zgrada
+              ➕ Nova zgrada
             </button>
           )}
         </div>
@@ -276,14 +288,27 @@ export default function BuildingSidebar({
 
       <div className="sidebar-members">
         <div style={{ margin: "8px 0" }}>
-          <h3>Članovi zgrade</h3>
+          <div className="members-head">
+            <h3 style={{ margin: 0 }}>Članovi zgrade</h3>
+
+            {isAdmin && (
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setEditOpen(true)}
+                disabled={!selectedId}
+              >
+                ✏️ Uredi
+              </button>
+            )}
+          </div>
 
           <div className="card" style={{ marginTop: "8px" }}>
             <div className="muted" style={{ fontWeight: 600, marginBottom: 4 }}>
               Admin
             </div>
             <ul className="muted" style={{ margin: 0, paddingLeft: 18 }}>
-              {members.admins.length ? members.admins.map((n, i) => <li key={i}>{n}</li>) : <li>—</li>}
+              {members.admins.length ? (members.admins.map((m) => <li key={m.id}>{m.name}</li>)) : (<li>—</li>)}
             </ul>
           </div>
 
@@ -292,7 +317,7 @@ export default function BuildingSidebar({
               Predstavnici
             </div>
             <ul className="muted" style={{ margin: 0, paddingLeft: 18 }}>
-              {members.reps.length ? members.reps.map((n, i) => <li key={i}>{n}</li>) : <li>—</li>}
+              {members.reps.length ? (members.reps.map((m) => <li key={m.id}>{m.name}</li>)) : (<li>—</li>)}
             </ul>
           </div>
 
@@ -301,9 +326,249 @@ export default function BuildingSidebar({
               Suvlasnici
             </div>
             <ul className="muted" style={{ margin: 0, paddingLeft: 18 }}>
-              {members.owners.length ? members.owners.map((n, i) => <li key={i}>{n}</li>) : <li>—</li>}
+              {members.owners.length ? (members.owners.map((m) => <li key={m.id}>{m.name}</li>)) : (<li>—</li>)}
             </ul>
           </div>
+        </div>
+      </div>
+
+      {editOpen && (
+        <EditMembersModal
+          buildingId={selectedId}
+          currentMembersAll={members.all || []}
+          removableMembers={(members.all || []).filter(m => m.role !== "admin")}
+          onClose={() => setEditOpen(false)}
+          onChanged={async () => {
+            await refreshMembers(selectedId);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function EditMembersModal({ buildingId, currentMembersAll, removableMembers, onClose, onChanged }) {
+  const [tab, setTab] = useState("remove"); // "remove" | "add"
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  // REMOVE
+  const [removeSet, setRemoveSet] = useState(() => new Set());
+
+  // ADD
+  const [allUsers, setAllUsers] = useState([]);
+  const [q, setQ] = useState("");
+  const [addSet, setAddSet] = useState(() => new Set());
+
+  const memberIdSet = useMemo(() => {
+    return new Set((currentMembersAll || []).map((m) => String(m.id)));
+  }, [currentMembersAll]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function load() {
+      try {
+        const data = await getAllUsers();
+        if (!alive) return;
+        setAllUsers(Array.isArray(data) ? data : []);
+      } catch (e) {
+        if (!alive) return;
+        setAllUsers([]);
+      }
+    }
+
+    load();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const filteredUsers = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    const list = Array.isArray(allUsers) ? allUsers : [];
+
+    return list
+      .map((u) => {
+        const id = String(u.id || "");
+        const name =
+          [u.firstName, u.lastName].filter(Boolean).join(" ").trim() ||
+          u.email ||
+          id;
+        return { id, name, email: u.email || "" };
+      })
+      .filter((u) => u.id)
+      .filter((u) => !memberIdSet.has(u.id))
+      .filter((u) => {
+        if (!query) return true;
+        return (
+          u.name.toLowerCase().includes(query) ||
+          (u.email || "").toLowerCase().includes(query)
+        );
+      });
+  }, [allUsers, q, memberIdSet]);
+
+  const canConfirm =
+    tab === "remove" ? removeSet.size > 0 : addSet.size > 0;
+
+  async function confirm() {
+    if (!buildingId) return;
+    if (!canConfirm) return;
+
+    setErr("");
+    setSaving(true);
+
+    try {
+      if (tab === "remove") {
+        const ids = Array.from(removeSet);
+        await removeMembersFromBuilding(buildingId, ids);
+      } else {
+        const ids = Array.from(addSet);
+        await addMembersToBuilding(buildingId, ids);
+      }
+
+      setRemoveSet(new Set());
+      setAddSet(new Set());
+      setQ("");
+
+      if (onChanged) await onChanged();
+      onClose();
+    } catch (e) {
+      setErr(e?.message || "Greška.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function toggleRemove(id) {
+    setRemoveSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAdd(id) {
+    setAddSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  return (
+    <div className="modal-backdrop open" onClick={onClose}>
+      <div className="modal modal-wide members-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>Uredi članove</h2>
+          <button className="modal-close" onClick={onClose}>
+            ×
+          </button>
+        </div>
+
+        <div className="members-tabs">
+          <button
+            type="button"
+            className={`members-tab ${tab === "remove" ? "active" : ""}`}
+            onClick={() => setTab("remove")}
+          >
+            Ukloni članove
+          </button>
+          <button
+            type="button"
+            className={`members-tab ${tab === "add" ? "active" : ""}`}
+            onClick={() => setTab("add")}
+          >
+            Dodaj članove
+          </button>
+        </div>
+
+        <div className="modal-body members-modal-body">
+          {tab === "remove" ? (
+            <>
+              <div className="muted" style={{ marginBottom: 10 }}>
+                Odaberite članove koje želite ukloniti iz zgrade.
+              </div>
+
+              <div className="members-list">
+                {(removableMembers || []).length === 0 ? (
+                  <div className="muted">Nema članova.</div>
+                ) : (
+                  removableMembers.map((m) => {
+                    const checked = removeSet.has(String(m.id));
+                    return (
+                      <label key={m.id} className="member-row">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleRemove(String(m.id))}
+                        />
+                        <span className="member-name">{m.name}</span>
+                        <span className="member-role muted">
+                          {m.role || "—"}
+                        </span>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="members-search">
+                <input
+                  type="text"
+                  value={q}
+                  placeholder="Pretraži korisnike (ime / email)…"
+                  onChange={(e) => setQ(e.target.value)}
+                />
+              </div>
+
+              <div className="members-list">
+                {filteredUsers.length === 0 ? (
+                  <div className="muted">Nema rezultata.</div>
+                ) : (
+                  filteredUsers.map((u) => {
+                    const checked = addSet.has(u.id);
+                    return (
+                      <label key={u.id} className="member-row">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleAdd(u.id)}
+                        />
+                        <span className="member-name">{u.name}</span>
+                        <span className="member-role muted">{u.email}</span>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+            </>
+          )}
+
+          {err && (
+            <div className="muted" style={{ color: "crimson", marginTop: 10 }}>
+              {err}
+            </div>
+          )}
+        </div>
+
+        <div className="modal-footer">
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={saving}>
+            Odustani
+          </button>
+
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={confirm}
+            disabled={!canConfirm || saving}
+          >
+            {saving ? "Spremanje..." : "Potvrdi"}
+          </button>
         </div>
       </div>
     </div>

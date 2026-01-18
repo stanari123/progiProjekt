@@ -3,127 +3,155 @@ import { AppError } from "../utils/AppError.js";
 
 //helpers
 export async function assertBuilding(buildingId) {
-    const { data: building } = await db
+    const { data: building, error } = await db
         .from("building")
         .select("*")
         .eq("id", buildingId)
         .single();
 
-    if (!building) throw new AppError("Zgrada nije pronađena", 404);
-
+    if (error || !building) throw new AppError("Zgrada nije pronađena", 404);
     return building;
 }
 
 export async function userInBuilding(userId, buildingId) {
-    // console.log("Checking if user", userId, "is in building", buildingId);
-    const membership = await db
+    const { data, error } = await db
         .from("building_membership")
-        .select("*")
+        .select("user_id")
         .eq("user_id", userId)
         .eq("building_id", buildingId);
 
-    if (!membership) throw new AppError("Korisnik nije član zgrade!", 403);
-    return membership;
+    if (error) throw new AppError("Greška pri provjeri članstva.", 500);
+    if (!data || data.length === 0) throw new AppError("Korisnik nije član zgrade!", 403);
+    return true;
 }
 
 export async function getBuildingForUser(buildingId, user) {
     const building = await assertBuilding(buildingId);
 
-    if (user.role !== "admin") {
-        await userInBuilding(user.id, buildingId);
+    if ((user?.role || "").toLowerCase() !== "admin") {
+        const userId = user?.sub || user?.id;
+        if (!userId) throw new AppError("Neispravan token.", 401);
+        await userInBuilding(userId, buildingId);
     }
 
     return building;
 }
 
 export async function getRoleInBuilding(userId, buildingId) {
-    const { data: userRole } = await db
+    const { data, error } = await db
         .from("building_membership")
-        .select("role")
-        .eq("userId", userId)
-        .eq("buildingId", buildingId)
+        .select("user_role")
+        .eq("user_id", userId)
+        .eq("building_id", buildingId)
         .single();
 
-    return userRole;
+    if (error || !data) return null;
+    return data.user_role || null;
 }
 
 export async function listMembers(buildingId, user) {
-    const memberships = await db
+    const { data: memberships, error: mErr } = await db
         .from("building_membership")
-        .select("*")
+        .select("user_id, user_role")
         .eq("building_id", buildingId);
+
+    if (mErr) throw new AppError("Greška pri dohvaćanju članova zgrade", 500);
 
     const userArr = [];
 
-    for (const membership of memberships.data) {
-        let userId = membership.user_id;
+    for (const membership of memberships || []) {
+        const userId = membership.user_id;
 
-        let userInfo = await db
-            .from("app_user")
-            .select("first_name, last_name")
-            .eq("id", userId)
-            .single();
+        const { data: userInfo, error: uErr } = await db
+        .from("app_user")
+        .select("first_name, last_name, email")
+        .eq("id", userId)
+        .single();
 
-        if (userInfo.data) {
-            userArr.push({
-                firstName: userInfo.data.first_name,
-                lastName: userInfo.data.last_name,
-                roleInBuilding: membership.user_role,
-            });
-        }
+        if (uErr || !userInfo) continue;
+
+        userArr.push({
+        userId,
+        firstName: userInfo.first_name,
+        lastName: userInfo.last_name,
+        email: userInfo.email,
+        roleInBuilding: membership.user_role,
+        });
     }
 
-    return userArr || [];
+    return userArr;
 }
 
 export async function listMyBuildings(user) {
-    if (user && user.role === "admin") {
-        const { data: buildings } = await db.from("building").select("*");
+    if ((user?.role || "").toLowerCase() === "admin") {
+        const { data: buildings, error } = await db.from("building").select("*");
+        if (error) throw new AppError("Greška pri dohvaćanju zgrada.", 500);
         return buildings || [];
     }
 
     if (!user) return [];
 
-    const { data: userRecord } = await db
+    const { data: userRecord, error: uErr } = await db
         .from("app_user")
-        .select("*")
+        .select("id")
         .eq("email", user.email)
         .single();
 
-    const { data: memberships } = await db
+    if (uErr || !userRecord) return [];
+
+    const { data: memberships, error: mErr } = await db
         .from("building_membership")
         .select("building_id")
         .eq("user_id", userRecord.id);
 
-    if (!memberships || memberships.length === 0) return [];
+    if (mErr || !memberships || memberships.length === 0) return [];
 
     const buildingIds = memberships.map((m) => m.building_id);
 
-    const { data: buildings } = await db
+    const { data: buildings, error: bErr } = await db
         .from("building")
         .select("*")
         .in("id", buildingIds);
 
+    if (bErr) throw new AppError("Greška pri dohvaćanju zgrada.", 500);
+
     return buildings || [];
 }
 
-export async function createBuilding(payload = {}) {
-  const name = (payload.name || "").trim();
-  const address = (payload.address || "").trim();
+export async function createBuilding(payload = {}, adminUser) {
+    const name = (payload.name || "").trim();
+    const address = (payload.address || "").trim();
 
-  if (!name || !address) {
-    throw new AppError("Naziv i adresa su obavezni", 400);
-  }
+    if (!name || !address) {
+        throw new AppError("Naziv i adresa su obavezni", 400);
+    }
 
-  const { data: inserted, error } = await db
-    .from("building")
-    .insert({ name, address })
-    .select("*")
-    .single();
+    if (!adminUser || (adminUser.role || "").toLowerCase() !== "admin") {
+        throw new AppError("Samo admin može kreirati zgradu", 403);
+    }
 
-  if (error) {
-    throw new AppError("Greška pri spremanju zgrade", 500);
-  }
+    const { data: inserted, error: insErr } = await db
+        .from("building")
+        .insert({ name, address })
+        .select("*")
+        .single();
 
-  return inserted;
+    if (insErr || !inserted) {
+        throw new AppError("Greška pri spremanju zgrade", 500);
+    }
+
+    const { error: memErr } = await db
+        .from("building_membership")
+        .insert({
+            user_id: adminUser.sub || adminUser.id,
+            building_id: inserted.id,
+            user_role: "admin",
+        });
+
+    if (memErr) {
+        throw new AppError("Greška pri dodavanju admina u zgradu", 500);
+    }
+
+    return inserted;
 }
+
