@@ -1,12 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import "../index.css";
 import { getAuth } from "../utils/auth";
 import { escapeHtml } from "../utils/escapeHtml";
 import { loadMembers } from "../services/buildings";
-
-function toBool(v) {
-    return v === true || v === "true" || v === 1 || v === "1";
-}
 
 export default function DiscussionList({ buildingId }) {
     const [discussions, setDiscussions] = useState([]);
@@ -18,7 +14,6 @@ export default function DiscussionList({ buildingId }) {
     const [newBody, setNewBody] = useState("");
     const [newPrivate, setNewPrivate] = useState(false);
     const [newMsg, setNewMsg] = useState("");
-
     const [members, setMembers] = useState([]);
     const [selectedParticipants, setSelectedParticipants] = useState([]);
 
@@ -83,24 +78,32 @@ export default function DiscussionList({ buildingId }) {
                 }
 
                 const list = await loadMembers(buildingId);
-
-                const myId = auth.user?.id || auth.user?.userId || auth.user?.sub || null;
+                const myFirst = (auth.user?.firstName || "").trim();
+                const myLast = (auth.user?.lastName || "").trim();
+                const myFull = [myFirst, myLast]
+                    .filter(Boolean)
+                    .join(" ")
+                    .trim()
+                    .toLowerCase();
 
                 const filtered = Array.isArray(list)
                     ? list
                           .map((m) => ({
-                              userId: m.userId || m.id,
-                              name: [m.firstName, m.lastName].filter(Boolean).join(" ").trim(),
+                              name: [m.firstName, m.lastName]
+                                  .filter(Boolean)
+                                  .join(" ")
+                                  .trim(),
                               roleInBuilding: m.roleInBuilding || "",
                           }))
-                          .filter((m) => !!m.userId)
-                          .filter((m) => (myId ? m.userId !== myId : true))
+                          .filter((m) =>
+                              myFull ? m.name.toLowerCase() !== myFull : true
+                          )
                     : [];
 
                 setMembers(filtered);
-
+                // Keep only selections that are still present
                 setSelectedParticipants((prev) =>
-                    prev.filter((id) => filtered.some((m) => m.userId === id))
+                    prev.filter((n) => filtered.some((m) => m.name === n))
                 );
             } catch (e) {
                 console.error("Greška pri dohvaćanju članova zgrade:", e);
@@ -110,9 +113,10 @@ export default function DiscussionList({ buildingId }) {
         }
 
         run();
-    }, [newPrivate, buildingId, auth.token, auth.user]);
+    }, [newPrivate, buildingId, auth.token]);
 
-    const grouped = useMemo(() => {
+    // Group discussions
+    function groupDiscussions() {
         const publicOnes = [];
         const privateYes = [];
         const privateNo = [];
@@ -120,18 +124,13 @@ export default function DiscussionList({ buildingId }) {
         for (const d of discussions) {
             if (!d) continue;
 
-            if (d.visibility === "javno") {
-                publicOnes.push(d);
-                continue;
-            }
-
-            const canView = toBool(d.canViewContent);
-            if (canView) privateYes.push(d);
-            else privateNo.push(d);
+            if (d.visibility === "javno") publicOnes.push(d);
+            else if (d.canViewContent === false) privateNo.push(d);
+            else privateYes.push(d);
         }
 
         return { publicOnes, privateYes, privateNo };
-    }, [discussions]);
+    }
 
     async function handleCreate(e) {
         e.preventDefault();
@@ -183,7 +182,7 @@ export default function DiscussionList({ buildingId }) {
         }
     }
 
-    const { publicOnes, privateYes, privateNo } = grouped;
+    const { publicOnes, privateYes, privateNo } = groupDiscussions();
 
     return (
         <section className="card">
@@ -277,11 +276,10 @@ export default function DiscussionList({ buildingId }) {
                                     }}
                                 >
                                     {members.map((m) => {
-                                        const isSelected = selectedParticipants.includes(m.userId);
-
+                                        const isSelected = selectedParticipants.includes(m.name);
                                         return (
                                             <label
-                                                key={m.userId}
+                                                key={m.name}
                                                 style={{
                                                     display: "flex",
                                                     alignItems: "center",
@@ -306,11 +304,9 @@ export default function DiscussionList({ buildingId }) {
                                                     checked={isSelected}
                                                     onChange={(e) => {
                                                         if (e.target.checked) {
-                                                            setSelectedParticipants((prev) => [...prev, m.userId]);
+                                                            setSelectedParticipants([...selectedParticipants,m.name]);
                                                         } else {
-                                                            setSelectedParticipants((prev) =>
-                                                                prev.filter((id) => id !== m.userId)
-                                                            );
+                                                            setSelectedParticipants(selectedParticipants.filter((n) => n !== m.name));
                                                         }
                                                     }}
                                                     style={{ marginRight: "8px", cursor: "pointer" }}
@@ -402,8 +398,8 @@ export default function DiscussionList({ buildingId }) {
 
 function DiscussionCard({ data, muted }) {
     const isPrivate = data.visibility === "privatno";
-    const canView = toBool(data.canViewContent);
-
+    const canView = data.canViewContent;
+    
     const isLocked = isPrivate && !canView;
 
     const statusLabel = data.status ? String(data.status).toUpperCase() : "";

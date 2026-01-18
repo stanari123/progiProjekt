@@ -133,7 +133,7 @@ export async function createDiscussion(
 
     const { data: userRecord, error: uErr } = await db
         .from("app_user")
-        .select("*")
+        .select("id, role")
         .eq("id", userId)
         .single();
 
@@ -160,26 +160,70 @@ export async function createDiscussion(
 
     const discussionId = inserted[0].id;
 
-    if (isPrivate && Array.isArray(participants) && participants.length > 0) {
-        const ids = [...new Set(participants)].filter(Boolean);
+    try {
+        if (isPrivate) {
+            const names = Array.isArray(participants)
+                ? [...new Set(participants)]
+                    .map((p) => (typeof p === "string" ? p.trim() : ""))
+                    .filter(Boolean)
+                : [];
 
-        if (ids.length > 0) {
-            const participantRecords = ids.map((uid) => ({
-                discussion_id: discussionId,
-                user_id: uid,
-                can_post: true,
-            }));
+            if (names.length > 0) {
+                const { data: members, error: memErr } = await db
+                    .from("building_membership")
+                    .select("user_id")
+                    .eq("building_id", buildingId);
 
-            const { error: pInsErr } = await db
-                .from("discussion_participant")
-                .insert(participantRecords);
+                if (memErr) throw new AppError("Greška pri dohvaćanju članova zgrade", 500);
 
-            if (pInsErr) {
-                console.error("insert discussion_participant error:", pInsErr);
-                throw new AppError("Greška pri dodavanju sudionika", 500);
+                const memberIds = new Set((members || []).map((m) => m.user_id));
+                if (memberIds.size === 0) throw new AppError("Zgrada nema članova", 400);
+
+                const { data: users, error: usersErr } = await db
+                    .from("app_user")
+                    .select("id, first_name, last_name")
+                    .in("id", [...memberIds]);
+
+                if (usersErr) throw new AppError("Greška pri dohvaćanju korisnika", 500);
+
+                const nameToId = new Map(
+                    (users || []).map((u) => [
+                        `${u.first_name || ""} ${u.last_name || ""}`.trim(),
+                        u.id,
+                    ])
+                );
+
+                const participantIds = names
+                    .map((n) => nameToId.get(n))
+                    .filter(Boolean)
+                    .filter((id) => id !== userRecord.id);
+
+                if (participantIds.length === 0) {
+                    throw new AppError("Odabrani sudionici nisu valjani članovi zgrade", 400);
+                }
+
+                const participantRecords = participantIds.map((uid) => ({
+                    discussion_id: discussionId,
+                    user_id: uid,
+                    can_post: true,
+                }));
+
+                const { error: pErr } = await db
+                    .from("discussion_participant")
+                    .insert(participantRecords);
+
+                if (pErr) {
+                    console.error("insert discussion_participant error:", pErr);
+                    throw new AppError("Greška pri dodavanju sudionika", 500);
+                }
             }
         }
-    }
 
-    return inserted;
+        return inserted;
+    } catch (err) {
+        await db.from("discussion").delete().eq("id", discussionId);
+
+        if (err instanceof AppError) throw err;
+        throw new AppError(err?.message || "Greška pri stvaranju privatne rasprave", 500);
+    }
 }
