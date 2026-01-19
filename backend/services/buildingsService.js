@@ -50,37 +50,36 @@ export async function getRoleInBuilding(userId, buildingId) {
 }
 
 export async function listMembers(buildingId, user) {
-    const { data: memberships, error: mErr } = await db
+    const memberships = await db
         .from("building_membership")
-        .select("user_id, user_role")
+        .select("*")
         .eq("building_id", buildingId);
-
-    if (mErr) throw new AppError("Greška pri dohvaćanju članova zgrade", 500);
 
     const userArr = [];
 
-    for (const membership of memberships || []) {
+    for (const membership of memberships.data || []) {
         const userId = membership.user_id;
 
-        const { data: userInfo, error: uErr } = await db
+        const userInfo = await db
         .from("app_user")
-        .select("first_name, last_name, email")
+        .select("first_name, last_name, email, role")
         .eq("id", userId)
         .single();
 
-        if (uErr || !userInfo) continue;
-
-        userArr.push({
-        userId,
-        firstName: userInfo.first_name,
-        lastName: userInfo.last_name,
-        email: userInfo.email,
-        roleInBuilding: membership.user_role,
-        });
+        if (userInfo.data) {
+            userArr.push({
+                userId: userId,
+                firstName: userInfo.data.first_name,
+                lastName: userInfo.data.last_name,
+                email: userInfo.data.email,
+                roleInBuilding: membership.user_role,
+            });
+        }
     }
 
     return userArr;
 }
+
 
 export async function listMyBuildings(user) {
     if ((user?.role || "").toLowerCase() === "admin") {
