@@ -47,37 +47,74 @@ export async function getMe(reqUser) {
 
 // google login
 export async function loginWithGoogleProfile(googleUser) {
-  if (!googleUser || !googleUser.email) {
-    throw new AppError("Nedostaje email iz Google profila", 400);
-  }
+    if (!googleUser || !googleUser.email) {
+        throw new AppError("Nedostaje email iz Google profila", 400);
+    }
 
-  const email = googleUser.email.toLowerCase();
+    const email = googleUser.email.toLowerCase();
 
-  //googleStrategy je handleao da postoji
-  const { data: user, error } = await db
-    .from("app_user")
-    .select("id, email, role, first_name, last_name")
-    .eq("email", email)
-    .maybeSingle();
+    //googleStrategy je handleao da postoji
+    const { data: user, error } = await db
+        .from("app_user")
+        .select("id, email, role, first_name, last_name")
+        .eq("email", email)
+        .maybeSingle();
 
-  if (error || !user) {
-    throw new AppError("Korisnik nije pronađen nakon Google prijave", 404);
-  }
+    if (error || !user) {
+        throw new AppError("Korisnik nije pronađen nakon Google prijave", 404);
+    }
 
-  const token = issueToken({
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  });
+    const token = issueToken({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+    });
 
-  return {
-    token,
-    user: {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      firstName: user.first_name || "",
-      lastName: user.last_name || "",
-    },
-  };
+    return {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          firstName: user.first_name || "",
+          lastName: user.last_name || "",
+        },
+    };
+}
+
+// promjena lozinke
+export async function changePassword(reqUser, currentPassword, newPassword) {
+    const curr = (currentPassword || "").trim();
+    const next = (newPassword || "").trim();
+
+    if (!curr || !next) throw new AppError("Sva polja su obavezna.", 400);
+    if (next.length < 6) throw new AppError("Nova lozinka mora imati barem 6 znakova.", 400);
+    if (curr === next) throw new AppError("Nova lozinka mora biti različita od trenutne.", 400);
+
+    const { data: user, error } = await db
+        .from("app_user")
+        .select("id,email,password_hash")
+        .eq("email", reqUser.email)
+        .single();
+
+    if (error || !user) throw new AppError("Korisnik nije pronađen", 404);
+
+    // Ako nema lozinke (Google-only):
+    if (!user.password_hash) {
+        throw new AppError("Ovaj račun nema lozinku (Google prijava).", 400);
+    }
+
+    const ok = await bcrypt.compare(curr, user.password_hash);
+    if (!ok) throw new AppError("Trenutna lozinka nije točna.", 401);
+
+    const newHash = await bcrypt.hash(next, 10);
+
+    const { error: updErr } = await db
+        .from("app_user")
+        .update({ password_hash: newHash })
+        .eq("id", user.id);
+
+    if (updErr) throw new AppError("Greška pri spremanju lozinke.", 500);
+
+    return { ok: true };
 }

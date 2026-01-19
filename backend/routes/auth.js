@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/auth.js";
-import { loginUser, getMe } from "../services/authService.js";
+import { loginUser, getMe, changePassword } from "../services/authService.js";
 
 const router = Router();
 
-//prijava (vraca token + user)
+// prijava (vraca token + user)
 router.post("/login", async (req, res, next) => {
     try {
         const { email, password } = req.body || {};
@@ -15,10 +15,21 @@ router.post("/login", async (req, res, next) => {
     }
 });
 
-//podaci o prijavljenom korisniku
+// podaci o prijavljenom korisniku
 router.get("/me", requireAuth, async (req, res, next) => {
     try {
         return res.json(await getMe(req.user));
+    } catch (err) {
+        next(err);
+    }
+});
+
+// promjena lozinke
+router.post("/change-password", requireAuth, async (req, res, next) => {
+    try {
+        const { currentPassword, newPassword } = req.body || {};
+        const out = await changePassword(req.user, currentPassword, newPassword);
+        return res.json(out);
     } catch (err) {
         next(err);
     }
