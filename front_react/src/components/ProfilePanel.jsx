@@ -104,7 +104,7 @@ export default function ProfilePanel({ isOpen, onClose }) {
         body: JSON.stringify({
           currentPassword,
           newPassword,
-        }),f
+        }),
       });
 
       const out = await res.json().catch(() => ({}));
