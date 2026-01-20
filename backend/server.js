@@ -55,9 +55,9 @@ app.use(express.static(path.join(__dirname, "dist")));
 
 // SPA fallback (regex) - sve što NIJE /api ide na index.html
 app.get(/^(?!\/api).*/, (req, res) => {
-  res.sendFile(path.join(__dirname, "dist", "index.html"));
+    res.sendFile(path.join(__dirname, "dist", "index.html"));
+    res.set("Expires", "0");
 });
-
 
 app.use(errorHandler);
 
