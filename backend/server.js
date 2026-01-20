@@ -18,7 +18,6 @@ import votesRouter from "./routes/votes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import buildingsRouter from "./routes/buildings.js";
 import adminRouter from "./routes/admin.js";
-import stanplanRouter from "./routes/stanplan.js";
 
 await seed();
 
@@ -37,7 +36,6 @@ app.use("/api/discussions", messagesRouter);
 app.use("/api/polls", votesRouter);
 app.use("/api/buildings", buildingsRouter);
 app.use("/api/admin", adminRouter);
-app.use("/api/stanplan", stanplanRouter);
 
 import passport from "passport";
 import "./auth/googleStrategy.js";
