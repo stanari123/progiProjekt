@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import "../admin/admin.css";
-import { getAdminBuildings, createAdminUser } from "../services/admin";
+import { getAdminBuildings, createAdminUser, getStanPlanLink, setStanPlanLink } from "../services/admin";
 import { getAuth } from "../utils/auth";
 import Topbar from "../components/Topbar";
 import ProfilePanel from "../components/ProfilePanel";
@@ -226,16 +226,15 @@ function StanPlanModal({ onClose }) {
 }
 
 function StanPlanForm({ onClose }) {
-  const STORAGE_KEY = "stanplan_link";
-
-  const [savedLink, setSavedLink] = useState(() => localStorage.getItem(STORAGE_KEY) || "");
-  const [link, setLink] = useState(() => localStorage.getItem(STORAGE_KEY) || "");
+  const [savedLink, setSavedLink] = useState("");
+  const [link, setLink] = useState("");
   const [feedback, setFeedback] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const trimmed = link.trim();
   const trimmedSaved = savedLink.trim();
-  const isSaveDisabled = saving || trimmed.length === 0 || trimmed === trimmedSaved;
+  const isSaveDisabled = saving || loading || trimmed.length === 0 || trimmed === trimmedSaved;
 
   function isValidUrl(value) {
     try {
@@ -246,6 +245,22 @@ function StanPlanForm({ onClose }) {
       return false;
     }
   }
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await getStanPlanLink();
+        const existing = (data?.link || "").trim();
+        setSavedLink(existing);
+        setLink(existing);
+      } catch (e) {
+        setFeedback("Ne mogu dohvatiti spremljenu poveznicu.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
 
   async function handleSave() {
     setFeedback("");
@@ -261,10 +276,13 @@ function StanPlanForm({ onClose }) {
 
     setSaving(true);
     try {
-      // spremanje lokalno (kasnije zamijeni API pozivom)
-      localStorage.setItem(STORAGE_KEY, trimmed);
-      setSavedLink(trimmed);
+      const res = await setStanPlanLink(trimmed);
+      const newLink = (res?.link || trimmed).trim();
+      setSavedLink(newLink);
+      setLink(newLink);
       setFeedback("Spremljeno.");
+    } catch (e) {
+      setFeedback(e?.message || "Greška pri spremanju.");
     } finally {
       setSaving(false);
     }
@@ -279,6 +297,7 @@ function StanPlanForm({ onClose }) {
             type="text"
             placeholder="npr. https://..."
             value={link}
+            disabled={loading}
             onChange={(e) => {
               setLink(e.target.value);
               setFeedback("");
@@ -286,7 +305,9 @@ function StanPlanForm({ onClose }) {
           />
         </label>
 
-        <p className="modal-feedback">{feedback}</p>
+        <p className="modal-feedback">
+          {loading ? "Učitavanje..." : feedback}
+        </p>
       </div>
 
       <div className="modal-footer">
@@ -301,3 +322,4 @@ function StanPlanForm({ onClose }) {
     </>
   );
 }
+

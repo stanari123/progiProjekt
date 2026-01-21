@@ -52,3 +52,15 @@ export function removeMembersFromBuilding(buildingId, userIds) {
     body: JSON.stringify({ userIds }),
   });
 }
+
+export function getStanPlanLink() {
+  return adminFetch("/admin/stanplan-link");
+}
+
+export function setStanPlanLink(link) {
+  return adminFetch("/admin/stanplan-link", {
+    method: "POST",
+    body: JSON.stringify({ link }),
+  });
+}
+

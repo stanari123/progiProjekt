@@ -2,6 +2,7 @@ import { Router } from "express";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { createUser, listUsers, addBuildingMembers, removeBuildingMembers } from "../services/adminService.js";
 import { listMyBuildings, createBuilding } from "../services/buildingsService.js";
+import { getStanPlanLink, setStanPlanLink } from "../services/stanplanConfigService.js";
 
 const router = Router();
 
@@ -76,5 +77,32 @@ router.post(
         }
     }
 );
+
+// StanPlan link (samo admin)
+router.get("/stanplan-link", 
+    requireAuth, 
+    requireRole("admin"), 
+    async (req, res, next) => {
+        try {
+            return res.json(await getStanPlanLink());
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
+router.post("/stanplan-link",
+    requireAuth, 
+    requireRole("admin"), 
+    async (req, res, next) => {
+        try {
+            const { link } = req.body || {};
+            return res.json(await setStanPlanLink(link));
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
 
 export default router;
