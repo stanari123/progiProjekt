@@ -91,3 +91,8 @@ CREATE TABLE public.vote (
   CONSTRAINT vote_poll_id_fkey FOREIGN KEY (poll_id) REFERENCES public.poll(id),
   CONSTRAINT vote_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id)
 );
+CREATE TABLE public.stanplan (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  link text,
+  CONSTRAINT stanplan_pkey PRIMARY KEY (id)
+);
