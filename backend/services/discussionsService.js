@@ -1,7 +1,6 @@
 import { db } from "../data/memory.js";
 import { AppError } from "../utils/AppError.js";
 import { userInBuilding } from "./buildingsService.js";
-import { sendEmail } from "../middleware/email.js";
 
 // helpers
 function isAdminRole(role) {
@@ -39,7 +38,11 @@ export async function userCanAccessDiscussion(discussion, authUser) {
 }
 
 export async function assertDiscussion(id) {
-    const { data, error } = await db.from("discussion").select("*").eq("id", id).single();
+    const { data, error } = await db
+        .from("discussion")
+        .select("*")
+        .eq("id", id)
+        .single();
 
     if (error || !data) throw new AppError("Diskusija nije pronađena", 404);
     return data;
@@ -118,10 +121,9 @@ export async function createDiscussion(
     title,
     body = "",
     isPrivate = false,
-    participants = [],
+    participants = []
 ) {
     if (!title?.trim()) throw new AppError("Naslov je obavezan", 400);
-    const trimmedTitle = title.trim();
     if (!buildingId) throw new AppError("buildingId je obavezan", 400);
 
     const userId = authUser?.sub;
@@ -144,7 +146,7 @@ export async function createDiscussion(
     const { data: inserted, error: insErr } = await db
         .from("discussion")
         .insert({
-            title: trimmedTitle,
+            title: title.trim(),
             building_id: buildingId,
             owner_id: userRecord.id,
             visibility: isPrivate ? "privatno" : "javno",
@@ -153,10 +155,8 @@ export async function createDiscussion(
         })
         .select();
 
-    if (insErr)
-        throw new AppError(insErr.message || "Greška pri stvaranju rasprave", 500);
-    if (!inserted || inserted.length === 0)
-        throw new AppError("Greška pri stvaranju rasprave", 500);
+    if (insErr) throw new AppError(insErr.message || "Greška pri stvaranju rasprave", 500);
+    if (!inserted || inserted.length === 0) throw new AppError("Greška pri stvaranju rasprave", 500);
 
     const discussionId = inserted[0].id;
 
@@ -164,8 +164,8 @@ export async function createDiscussion(
         if (isPrivate) {
             const names = Array.isArray(participants)
                 ? [...new Set(participants)]
-                      .map((p) => (typeof p === "string" ? p.trim() : ""))
-                      .filter(Boolean)
+                    .map((p) => (typeof p === "string" ? p.trim() : ""))
+                    .filter(Boolean)
                 : [];
 
             if (names.length > 0) {
@@ -174,15 +174,14 @@ export async function createDiscussion(
                     .select("user_id")
                     .eq("building_id", buildingId);
 
-                if (memErr)
-                    throw new AppError("Greška pri dohvaćanju članova zgrade", 500);
+                if (memErr) throw new AppError("Greška pri dohvaćanju članova zgrade", 500);
 
                 const memberIds = new Set((members || []).map((m) => m.user_id));
                 if (memberIds.size === 0) throw new AppError("Zgrada nema članova", 400);
 
                 const { data: users, error: usersErr } = await db
                     .from("app_user")
-                    .select("id, first_name, last_name, email")
+                    .select("id, first_name, last_name")
                     .in("id", [...memberIds]);
 
                 if (usersErr) throw new AppError("Greška pri dohvaćanju korisnika", 500);
@@ -191,7 +190,7 @@ export async function createDiscussion(
                     (users || []).map((u) => [
                         `${u.first_name || ""} ${u.last_name || ""}`.trim(),
                         u.id,
-                    ]),
+                    ])
                 );
 
                 const participantIds = names
@@ -200,16 +199,8 @@ export async function createDiscussion(
                     .filter((id) => id !== userRecord.id);
 
                 if (participantIds.length === 0) {
-                    throw new AppError(
-                        "Odabrani sudionici nisu valjani članovi zgrade",
-                        400,
-                    );
+                    throw new AppError("Odabrani sudionici nisu valjani članovi zgrade", 400);
                 }
-
-                const participantIdSet = new Set(participantIds);
-                const participantUsers = (users || []).filter((u) =>
-                    participantIdSet.has(u.id),
-                );
 
                 const participantRecords = participantIds.map((uid) => ({
                     discussion_id: discussionId,
@@ -224,23 +215,6 @@ export async function createDiscussion(
                 if (pErr) {
                     console.error("insert discussion_participant error:", pErr);
                     throw new AppError("Greška pri dodavanju sudionika", 500);
-                }
-
-                // email notifications
-                const emailSubject = `Dodani ste u raspravu "${trimmedTitle}"`;
-                const emailHtml =
-                    `<p>Pozdrav,</p>` +
-                    `<p>Dodani ste u privatnu raspravu "<strong>${trimmedTitle}</strong>".</p>` +
-                    `<p>Poveznica na diskusiju se nalazi <a href="https://progistanblog.azurewebsites.net/discussions/${discussionId}">ovdje.</a> </p>` +
-                    `<p>Prijavite se na StanBlog kako biste pročitali i sudjelovali u raspravi.</p>`;
-
-                const emailPromises = participantUsers
-                    .map((u) => u.email)
-                    .filter(Boolean)
-                    .map((email) => sendEmail(email, emailSubject, emailHtml));
-
-                if (emailPromises.length > 0) {
-                    await Promise.allSettled(emailPromises);
                 }
             }
         }
