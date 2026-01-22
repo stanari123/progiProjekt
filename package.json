@@ -47,12 +47,7 @@
         "start": "node backend/server.js",
         "dev": "nodemon backend/server.js",
         "build": "cd front_react && npm install && npm run build",
-        "deploy": "npm run build && npm start",
-        "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-        "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
-        "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
-        "test:backend": "node --experimental-vm-modules node_modules/jest/bin/jest.js backend/tests/",
-        "test:verbose": "node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose"
+        "deploy": "npm run build && npm start"
     },
     "repository": {
         "type": "git",
@@ -68,7 +63,6 @@
     "devDependencies": {
         "@testing-library/react": "^16.3.2",
         "@types/pg": "^8.15.6",
-        "jest": "^30.2.0",
         "nodemon": "^3.1.10",
         "supabase": "^2.54.11"
     }
