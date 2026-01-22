@@ -1,7 +1,6 @@
 import bcrypt from "bcryptjs";
 import { db } from "../data/memory.js";
 import { AppError } from "../utils/AppError.js";
-import { sendEmail } from "../middleware/email.js";
 
 export class User {
     constructor(id, firstName, lastName, email, role, password) {
@@ -30,7 +29,7 @@ export async function findUserByEmail(email = "") {
         data.last_name,
         data.email,
         data.role,
-        data.password_hash,
+        data.password_hash
     );
 }
 
@@ -98,21 +97,8 @@ export async function createUser(currentUser, newUser) {
         newUser.lastName,
         newUser.email,
         newUser.role,
-        passHash,
+        passHash
     );
-
-    sendEmail(
-        newUser.email,
-        "Dobrodošli u StanBlog!",
-        `<p>Pozdrav ${newUser.firstName || ""},</p>` +
-            `<p>Vaš račun je uspješno kreiran na StanBlog platformi.</p>` +
-            `<p>Možete se prijaviti koristeći vašu e-poštu: <strong>${newUser.email}</strong></p>` +
-            `<p>Vaša privremena šifra je: ${newUser.password}</p>` +
-            `<p>Molimo vas da nakon prve prijave promijenite vašu šifru radi sigurnosti.</p>` +
-            `<p>Hvala što koristite StanBlog!</p>`,
-    ).catch((err) => {
-        console.error("Greška pri slanju dobrodošlice e-pošte:", err);
-    });
 
     await addMembership(data[0].id, newUser.buildingIds || [], newUser.role);
 
