@@ -231,6 +231,7 @@ export async function createDiscussion(
                 const emailHtml =
                     `<p>Pozdrav,</p>` +
                     `<p>Dodani ste u privatnu raspravu "<strong>${trimmedTitle}</strong>".</p>` +
+                    `<p>Poveznica na diskusiju se nalazi <a href="https://progistanblog.azurewebsites.net/discussions/${discussionId}">ovdje.</a> </p>` +
                     `<p>Prijavite se na StanBlog kako biste pročitali i sudjelovali u raspravi.</p>`;
 
                 const emailPromises = participantUsers
