@@ -5,40 +5,50 @@ import BuildingSidebar from "../components/BuildingSidebar";
 import DiscussionList from "../components/DiscussionList";
 import BuildingMapPanel from "../components/BuildingMapPanel";
 import "../index.css";
-import { getAuth } from "../utils/auth";
+import { getAuth, setAuth } from "../utils/auth";
 import { useEffect } from "react";
 
 export default function Home() {
-  const { token } = getAuth();
+    const { token } = getAuth();
 
-  useEffect(() => {
-    if (!token) {
-      window.location.href = "/login";
-    }
-  }, []);
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const oauthToken = params.get("token");
 
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [buildingId, setBuildingId] = useState(null);
+        if (oauthToken) {
+            setAuth(oauthToken, null);
+            window.history.replaceState({}, "", window.location.pathname);
+            window.location.reload();
+            return;
+        }
 
-  return (
-    <>
-      <Topbar onProfileToggle={() => setProfileOpen(true)} />
+        if (!token) {
+            window.location.href = "/login";
+        }
+    }, [token]);
 
-      <ProfilePanel isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
+    const [profileOpen, setProfileOpen] = useState(false);
+    const [buildingId, setBuildingId] = useState(null);
 
-      <main className="layout">
-        <div className="left-col">
-          <BuildingSidebar onBuildingChange={setBuildingId} />
-        </div>
+    return (
+        <>
+            <Topbar onProfileToggle={() => setProfileOpen(true)} />
 
-        <div className="center-col">
-          <DiscussionList buildingId={buildingId} />
-        </div>
+            <ProfilePanel isOpen={profileOpen} onClose={() => setProfileOpen(false)} />
 
-        <div className="right-col">
-          <BuildingMapPanel buildingId={buildingId} />
-        </div>
-      </main>
-    </>
-  );
+            <main className="layout">
+                <div className="left-col">
+                    <BuildingSidebar onBuildingChange={setBuildingId} />
+                </div>
+
+                <div className="center-col">
+                    <DiscussionList buildingId={buildingId} />
+                </div>
+
+                <div className="right-col">
+                    <BuildingMapPanel buildingId={buildingId} />
+                </div>
+            </main>
+        </>
+    );
 }

@@ -68,22 +68,38 @@ export default function Login() {
         const googleToken = params.get("token");
         const oauthError = params.get("error");
 
-        if (googleToken) {
-            // Store token using new auth system
-            setAuth(googleToken, null);
-
+        async function handleGoogleLogin(token) {
+            // Save token first
+            setAuth(token, null);
             try {
-                const payload = JSON.parse(atob(googleToken.split(".")[1]));
-                const role = (payload.role || "").toLowerCase();
+                // Fetch user from backend using token
+                const res = await fetch("/api/auth/me", {
+                    headers: { Authorization: "Bearer " + token },
+                });
+                const me = await res.json().catch(() => ({}));
 
-                if (role === "admin") {
-                    window.location.href = "/admin";
+                if (res.ok && me && me.email) {
+                    const user = {
+                        email: me.email,
+                        role: me.role,
+                        firstName: me.firstName || "",
+                        lastName: me.lastName || "",
+                    };
+                    setAuth(token, user);
+
+                    const role = (user.role || "").toLowerCase();
+                    window.location.href = role === "admin" ? "/admin" : "/";
                 } else {
+                    // Fallback to home
                     window.location.href = "/";
                 }
-            } catch {
+            } catch (e) {
                 window.location.href = "/";
             }
+        }
+
+        if (googleToken) {
+            handleGoogleLogin(googleToken);
         } else if (oauthError) {
             updateFeedback("error", oauthError);
             // Clean URL so message doesn't persist on refresh
