@@ -21,23 +21,10 @@ router.get(
     }),
     async (req, res, next) => {
         try {
-            const { token, user } = await loginWithGoogleProfile(req.user);
+            const { token } = await loginWithGoogleProfile(req.user);
 
-            const isAdmin = (user.role || "").toLowerCase() === "admin";
-
-            return res.send(`
-        <!doctype html>
-        <html>
-          <head><meta charset="utf-8"><title>Prijava...</title></head>
-          <body>
-            <script>
-              localStorage.setItem("token", ${JSON.stringify(token)});
-              localStorage.setItem("user", ${JSON.stringify(JSON.stringify(user))});
-              window.location.href = "${process.env.WEBSITE_URL}${isAdmin ? "/admin" : "/"}";
-            </script>
-          </body>
-        </html>
-      `);
+            const redirectUrl = `${process.env.WEBSITE_URL}/login?token=${encodeURIComponent(token)}`;
+            return res.redirect(redirectUrl);
         } catch (err) {
             next(err);
         }

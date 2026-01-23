@@ -73,11 +73,11 @@ export async function loginWithGoogleProfile(googleUser) {
     return {
         token,
         user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          firstName: user.first_name || "",
-          lastName: user.last_name || "",
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            firstName: user.first_name || "",
+            lastName: user.last_name || "",
         },
     };
 }
@@ -88,8 +88,10 @@ export async function changePassword(reqUser, currentPassword, newPassword) {
     const next = (newPassword || "").trim();
 
     if (!curr || !next) throw new AppError("Sva polja su obavezna.", 400);
-    if (next.length < 6) throw new AppError("Nova lozinka mora imati barem 6 znakova.", 400);
-    if (curr === next) throw new AppError("Nova lozinka mora biti različita od trenutne.", 400);
+    if (next.length < 6)
+        throw new AppError("Nova lozinka mora imati barem 6 znakova.", 400);
+    if (curr === next)
+        throw new AppError("Nova lozinka mora biti različita od trenutne.", 400);
 
     const { data: user, error } = await db
         .from("app_user")
