@@ -21,23 +21,25 @@ Kako mnogi od nas žive u zgradama ili studentskim domovima, znamo da je teško 
 
 # Tehnologije
 
-NodeJS, Express, HTML, CSS, JavaScript, EJS
+NodeJS, Express, HTML, CSS, JavaScript, React
 
 > Podložno dodatcima i promjenama.
 
 # Članovi tima
 
+Full-stack:
+- [Jakov Svalina](https://github.com/svalinovich)
+- [Isa Trobradović](https://github.com/IsaTrobradovic)
+
+Baza podataka i serversko sučelje StanPlan aplikacije: 
+- [Vinko Šapina](https://github.com/vinkosapina)
+
 Frontend:
-- [Marko Vrkić](https://github.com/MarkoVr004)
 - [Luka Zorić](https://github.com/LukaZ-25)
  
 Baza podataka: 
+- [Marko Vrkić](https://github.com/MarkoVr004)
 - [Oleksandr Malik](https://github.com/sanos56)
-- [Vinko Šapina](https://github.com/vinkosapina)
-
-Backend:
-- [Isa Trobradović](https://github.com/IsaTrobradovic)
-- [Jakov Svalina](https://github.com/svalinovich)
 
 Voditelj tima: [Vinko Šapina](https://github.com/vinkosapina)
 
