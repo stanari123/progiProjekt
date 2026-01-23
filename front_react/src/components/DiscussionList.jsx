@@ -111,20 +111,16 @@ export default function DiscussionList({ buildingId }) {
 
                 const filtered = Array.isArray(list)
                     ? list
-                          .map((m) => ({
-                              name: [m.firstName, m.lastName]
-                                  .filter(Boolean)
-                                  .join(" ")
-                                  .trim(),
-                              roleInBuilding: m.roleInBuilding || "",
-                          }))
-                          .filter((m) =>
-                              myFull ? m.name.toLowerCase() !== myFull : true,
-                          )
+                        .map((m) => ({
+                            id: m.id,
+                            name: [m.firstName, m.lastName].filter(Boolean).join(" ").trim(),
+                            roleInBuilding: (m.roleInBuilding || "").toLowerCase(),
+                        }))
+                        .filter((m) => (myFull ? m.name.toLowerCase() !== myFull : true))
+                        .filter((m) => m.roleInBuilding !== "admin")
                     : [];
 
                 setMembers(filtered);
-                // Keep only selections that are still present
                 setSelectedParticipants((prev) =>
                     prev.filter((n) => filtered.some((m) => m.name === n)),
                 );
@@ -210,7 +206,7 @@ export default function DiscussionList({ buildingId }) {
     return (
         <section className="card">
             <div className="card-header">
-                <h2>Rasprave</h2>
+                <h2>Oglasna ploča</h2>
                 <div className="header-actions">
                     {auth.token && (
                         <button
@@ -415,7 +411,7 @@ export default function DiscussionList({ buildingId }) {
                     <>
                         {publicOnes.length > 0 && (
                             <>
-                                <h3 style={{ marginTop: "18px" }}>🔹 Javne rasprave</h3>
+                                <h3 style={{ marginTop: "18px" }}>🌐 Javne rasprave</h3>
                                 {publicOnes.map((d) => (
                                     <DiscussionCard key={d.id} data={d} />
                                 ))}
