@@ -3,6 +3,7 @@ import { db } from "../data/memory.js";
 import { AppError } from "../utils/AppError.js";
 import { issueToken } from "../middleware/auth.js";
 import { findUserByEmail } from "./adminService.js";
+import { sendEmail } from "../middleware/email.js";
 
 // login — vraća token i user info
 export async function loginUser(email, password) {
@@ -73,11 +74,11 @@ export async function loginWithGoogleProfile(googleUser) {
     return {
         token,
         user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          firstName: user.first_name || "",
-          lastName: user.last_name || "",
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            firstName: user.first_name || "",
+            lastName: user.last_name || "",
         },
     };
 }
@@ -88,8 +89,10 @@ export async function changePassword(reqUser, currentPassword, newPassword) {
     const next = (newPassword || "").trim();
 
     if (!curr || !next) throw new AppError("Sva polja su obavezna.", 400);
-    if (next.length < 6) throw new AppError("Nova lozinka mora imati barem 6 znakova.", 400);
-    if (curr === next) throw new AppError("Nova lozinka mora biti različita od trenutne.", 400);
+    if (next.length < 6)
+        throw new AppError("Nova lozinka mora imati barem 6 znakova.", 400);
+    if (curr === next)
+        throw new AppError("Nova lozinka mora biti različita od trenutne.", 400);
 
     const { data: user, error } = await db
         .from("app_user")
@@ -115,6 +118,17 @@ export async function changePassword(reqUser, currentPassword, newPassword) {
         .eq("id", user.id);
 
     if (updErr) throw new AppError("Greška pri spremanju lozinke.", 500);
+
+    sendEmail(
+        user.email,
+        "Lozinka je promijenjena",
+        `<p>Poštovani,</p>
+        <p>Vaša nova lozinka je: ${newPassword}</p>
+        <p>Ako niste vi inicirali ovu promjenu, molimo vas da odmah kontaktirate našu podršku.</p>
+        <p>Lijep pozdrav,<br/>StanBlog tim</p>`,
+    ).catch((err) => {
+        console.error("Greška pri slanju emaila o promjeni lozinke:", err);
+    });
 
     return { ok: true };
 }
