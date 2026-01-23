@@ -37,7 +37,7 @@ Baza podataka i serversko sučelje StanPlan aplikacije:
 Frontend:
 - [Luka Zorić](https://github.com/LukaZ-25)
  
-Baza podataka: 
+Dokumentacija: 
 - [Marko Vrkić](https://github.com/MarkoVr004)
 - [Oleksandr Malik](https://github.com/sanos56)
 
