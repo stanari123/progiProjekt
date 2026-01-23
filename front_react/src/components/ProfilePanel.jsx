@@ -171,6 +171,18 @@ export default function ProfilePanel({ isOpen, onClose }) {
           )}
         </div>
 
+        <div className="actions">
+          {auth.token ? (
+            <button className="btn" type="button" onClick={handleLogout}>
+              Odjava
+            </button>
+          ) : (
+            <a href="/login" className="btn" id="loginLink">
+              Prijava
+            </a>
+          )}
+        </div>
+        
         {canOpenSettings && (
           <div className="profile-settings-card">
             <div className="profile-settings-head">
@@ -193,17 +205,6 @@ export default function ProfilePanel({ isOpen, onClose }) {
           </div>
         )}
 
-        <div className="actions">
-          {auth.token ? (
-            <button className="btn" type="button" onClick={handleLogout}>
-              Odjava
-            </button>
-          ) : (
-            <a href="/login" className="btn" id="loginLink">
-              Prijava
-            </a>
-          )}
-        </div>
       </aside>
 
       {settingsOpen && (

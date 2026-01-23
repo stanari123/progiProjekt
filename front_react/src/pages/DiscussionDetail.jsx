@@ -218,8 +218,8 @@ function DiscussionHeader({ discussion, onChange, onBack }) {
                             </button>
                         </>
                     )}
-                    <button className="btn btn-icon" type="button" onClick={onBack}>
-                        ⟵ 
+                    <button className="btn btn-icon" type="button" onClick={onBack} style={{color: "black"}}>
+                        ↩ 
                     </button>
                 </div>
             </div>

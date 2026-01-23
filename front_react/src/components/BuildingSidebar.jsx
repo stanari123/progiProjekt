@@ -196,7 +196,20 @@ export default function BuildingSidebar({
   return (
     <div className="sidebar">
       <div className="sidebar-top">
-        <label htmlFor="buildingSel">Zgrada:</label>
+        <div className="members-head">
+          <h3 className="building-title">Vaše zgrade</h3>
+
+          {isAdmin && (
+            <button
+              type="button"
+              className="btn btn-icon btn-icon--inline"
+              onClick={openAdd}
+              style={{ color: "black" }}
+            >
+              ➕ Nova
+            </button>
+          )}
+        </div>
 
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <select
@@ -220,12 +233,6 @@ export default function BuildingSidebar({
               ))
             )}
           </select>
-
-          {isAdmin && (
-            <button type="button" className="btn" onClick={openAdd}>
-              ➕ Nova
-            </button>
-          )}
         </div>
 
         {showAdd && (
@@ -287,9 +294,9 @@ export default function BuildingSidebar({
       </div>
 
       <div className="sidebar-members">
-        <div style={{ margin: "8px 2px" }}>
+        <div>
           <div className="members-head">
-            <h3 style={{ margin: 0 }}>Članovi zgrade</h3>
+            <h3>Članovi</h3>
 
             {isAdmin && (
               <button type="button" className="btn btn-icon" onClick={() => setEditOpen(true)} disabled={!selectedId}>
@@ -298,7 +305,7 @@ export default function BuildingSidebar({
             )}
           </div>
 
-          <div className="card" style={{ marginTop: "18px" }}>
+          <div className="card">
             <div className="muted" style={{ fontWeight: 600, marginBottom: 4 }}>
               Admin
             </div>
@@ -307,7 +314,7 @@ export default function BuildingSidebar({
             </ul>
           </div>
 
-          <div className="card" style={{ marginTop: "8px" }}>
+          <div className="card" >
             <div className="muted" style={{ fontWeight: 600, marginBottom: 4 }}>
               Predstavnici
             </div>
@@ -316,7 +323,7 @@ export default function BuildingSidebar({
             </ul>
           </div>
 
-          <div className="card" style={{ marginTop: "8px" }}>
+          <div className="card">
             <div className="muted" style={{ fontWeight: 600, marginBottom: 4 }}>
               Suvlasnici
             </div>
