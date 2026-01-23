@@ -102,10 +102,6 @@ export async function changePassword(reqUser, currentPassword, newPassword) {
 
     if (error || !user) throw new AppError("Korisnik nije pronađen", 404);
 
-    // Ako nema lozinke (Google-only):
-    if (!user.password_hash) {
-        throw new AppError("Ovaj račun nema lozinku (Google prijava).", 400);
-    }
 
     const ok = await bcrypt.compare(curr, user.password_hash);
     if (!ok) throw new AppError("Trenutna lozinka nije točna.", 401);

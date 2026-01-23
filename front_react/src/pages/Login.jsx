@@ -108,67 +108,69 @@ export default function Login() {
     }, []);
 
     return (
-        <main className="card">
-            <form onSubmit={handleSubmit} autoComplete="on" noValidate>
-                <div className="field">
-                    <label htmlFor="email" className="label">
-                        Elektronička pošta
-                    </label>
-                    <input
-                        id="email"
-                        name="email"
-                        type="email"
-                        required
-                        placeholder="elektronicka.posta@hotmail.com"
-                        className="input"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                    />
-                </div>
+        <div className="page">
+            <main className="card">
+                <form onSubmit={handleSubmit} autoComplete="on" noValidate>
+                    <div className="field">
+                        <label htmlFor="email" className="label">
+                            Elektronička pošta
+                        </label>
+                        <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            required
+                            placeholder="elektronicka.posta@hotmail.com"
+                            className="input"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
+                    </div>
 
-                <div className="field">
-                    <label htmlFor="password" className="label">
-                        Lozinka
-                    </label>
-                    <input
-                        id="password"
-                        name="password"
-                        type={showPassword ? "text" : "password"}
-                        required
-                        minLength={6}
-                        placeholder="********"
-                        className="input"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
+                    <div className="field">
+                        <label htmlFor="password" className="label">
+                            Lozinka
+                        </label>
+                        <input
+                            id="password"
+                            name="password"
+                            type={showPassword ? "text" : "password"}
+                            required
+                            minLength={6}
+                            placeholder="********"
+                            className="input"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
 
-                    <button
-                        type="button"
-                        className="toggle-btn"
-                        onClick={() => setShowPassword((prev) => !prev)}
+                        <button
+                            type="button"
+                            className="toggle-btn"
+                            onClick={() => setShowPassword((prev) => !prev)}
+                        >
+                            {showPassword ? "Vidljiva šifra 👁️" : "Skrivena šifra 🙈"}
+                        </button>
+                    </div>
+
+                    <div className="google-login">
+                        <a href="/auth/google" className="google-link">
+                            Prijava putem Googlea
+                        </a>
+                    </div>
+
+                    <div
+                        className={`feedback ${feedback.type}`}
+                        role="status"
+                        aria-live="polite"
                     >
-                        {showPassword ? "Vidljiva šifra 👁️" : "Skrivena šifra 🙈"}
+                        {feedback.msg}
+                    </div>
+
+                    <button type="submit" className="btn" disabled={loading}>
+                        Ulazak
                     </button>
-                </div>
-
-                <div className="google-login">
-                    <a href="/auth/google" className="google-link">
-                        Prijava putem Googlea
-                    </a>
-                </div>
-
-                <div
-                    className={`feedback ${feedback.type}`}
-                    role="status"
-                    aria-live="polite"
-                >
-                    {feedback.msg}
-                </div>
-
-                <button type="submit" className="btn" disabled={loading}>
-                    Ulazak
-                </button>
-            </form>
-        </main>
+                </form>
+            </main>
+        </div>
     );
 }

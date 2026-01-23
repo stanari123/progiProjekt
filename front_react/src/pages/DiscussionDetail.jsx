@@ -189,10 +189,6 @@ function DiscussionHeader({ discussion, onChange, onBack }) {
                 <h1 id="title">{discussion.title || "Rasprava"}</h1>
 
                 <div className="header-actions">
-                    <button className="btn" type="button" onClick={onBack}>
-                        ⟵ Natrag
-                    </button>
-
                     {canModerate && (
                         <>
                             <button
@@ -205,7 +201,7 @@ function DiscussionHeader({ discussion, onChange, onBack }) {
                                 }}
                                 onClick={() => changeStatus("close")}
                             >
-                                Zatvori raspravu
+                                Zatvori
                             </button>
 
                             <button
@@ -218,10 +214,13 @@ function DiscussionHeader({ discussion, onChange, onBack }) {
                                 }}
                                 onClick={() => changeStatus("open")}
                             >
-                                Otvori raspravu
+                                Otvori
                             </button>
                         </>
                     )}
+                    <button className="btn btn-icon" type="button" onClick={onBack}>
+                        ⟵ 
+                    </button>
                 </div>
             </div>
 

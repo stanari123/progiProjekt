@@ -223,7 +223,7 @@ export default function BuildingSidebar({
 
           {isAdmin && (
             <button type="button" className="btn" onClick={openAdd}>
-              ➕ Nova zgrada
+              ➕ Nova
             </button>
           )}
         </div>
@@ -287,27 +287,22 @@ export default function BuildingSidebar({
       </div>
 
       <div className="sidebar-members">
-        <div style={{ margin: "8px 0" }}>
+        <div style={{ margin: "8px 2px" }}>
           <div className="members-head">
             <h3 style={{ margin: 0 }}>Članovi zgrade</h3>
 
             {isAdmin && (
-              <button
-                type="button"
-                className="btn"
-                onClick={() => setEditOpen(true)}
-                disabled={!selectedId}
-              >
-                ✏️ Uredi
+              <button type="button" className="btn btn-icon" onClick={() => setEditOpen(true)} disabled={!selectedId}>
+                ✏️
               </button>
             )}
           </div>
 
-          <div className="card" style={{ marginTop: "8px" }}>
+          <div className="card" style={{ marginTop: "18px" }}>
             <div className="muted" style={{ fontWeight: 600, marginBottom: 4 }}>
               Admin
             </div>
-            <ul className="muted" style={{ margin: 0, paddingLeft: 18 }}>
+            <ul className="muted" style={{ margin: 0, paddingLeft: 30 }}>
               {members.admins.length ? (members.admins.map((m) => <li key={m.id}>{m.name}</li>)) : (<li>—</li>)}
             </ul>
           </div>
@@ -316,7 +311,7 @@ export default function BuildingSidebar({
             <div className="muted" style={{ fontWeight: 600, marginBottom: 4 }}>
               Predstavnici
             </div>
-            <ul className="muted" style={{ margin: 0, paddingLeft: 18 }}>
+            <ul className="muted" style={{ margin: 0, paddingLeft: 30 }}>
               {members.reps.length ? (members.reps.map((m) => <li key={m.id}>{m.name}</li>)) : (<li>—</li>)}
             </ul>
           </div>
@@ -325,7 +320,7 @@ export default function BuildingSidebar({
             <div className="muted" style={{ fontWeight: 600, marginBottom: 4 }}>
               Suvlasnici
             </div>
-            <ul className="muted" style={{ margin: 0, paddingLeft: 18 }}>
+            <ul className="muted" style={{ margin: 0, paddingLeft: 30 }}>
               {members.owners.length ? (members.owners.map((m) => <li key={m.id}>{m.name}</li>)) : (<li>—</li>)}
             </ul>
           </div>
