@@ -144,7 +144,7 @@ export async function createMeetingFromDiscussion(discussionId, datetime, authUs
     const mjesto = [building?.name, building?.address].filter(Boolean).join(", ");
 
     const { link } = await getStanPlanLink();
-    const endpoint = (link || "").trim().replace(/\/$/, "") + "/api/meetings/create";
+    const endpoint = (link || "").trim().replace(/\/$/, "") + "/api/stanblog/meetings/create";
     if (!endpoint) throw new AppError("StanPlan link nije postavljen", 500);
 
     // payload: naslov, opis, pitanje (iz ankete), mjesto, vrijeme
