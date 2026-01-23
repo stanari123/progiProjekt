@@ -908,14 +908,6 @@ function DiscussionPollAndVotes({ discussion, onChange }) {
                                     }}
                                 >
                                     <h3 style={{ margin: 0 }}>Sazovi sastanak</h3>
-                                    <button
-                                        type="button"
-                                        className="btn"
-                                        onClick={() => setMeetingOpen(false)}
-                                        disabled={meetingSending}
-                                    >
-                                        Zatvori
-                                    </button>
                                 </div>
 
                                 <div style={{ marginTop: 10 }}>
