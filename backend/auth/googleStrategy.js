@@ -1,7 +1,6 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { db } from "../data/memory.js";
-import bcrypt from "bcryptjs";
 
 passport.use(
     new GoogleStrategy(
@@ -21,44 +20,12 @@ passport.use(
                     .eq("email", email.toLowerCase())
                     .maybeSingle();
 
-                if (error) return done(error);
+                if (!user) return done(null, false);
 
-                let finalUser = user;
-
-                if (!finalUser) {
-                    const { data: created, error: insErr } = await db
-                        .from("app_user")
-                        .insert({
-                            email: email.toLowerCase(),
-                            role: "suvlasnik",
-                            first_name: profile.name?.givenName ?? "",
-                            last_name: profile.name?.familyName ?? "",
-                            password_hash: await bcrypt.hash("korisnik", 10),
-                        })
-                        .select()
-                        .maybeSingle();
-
-                    // default ponašanje - dodaj novog korisnika u sve zgrade i stavi ga kao suvlasnika
-                    const { data: buildings } = await db
-                        .from("building")
-                        .select("*");
-
-                    for (const building of buildings) {
-                        await db.from("building_membership").insert({
-                            building_id: building.id,
-                            user_id: created.id,
-                            user_role: "suvlasnik",
-                        });
-                    }
-
-                    if (insErr) return done(insErr);
-                    finalUser = created;
-                }
-
-                return done(null, finalUser);
+                return done(null, user);
             } catch (err) {
                 return done(err);
             }
-        }
-    )
+        },
+    ),
 );
