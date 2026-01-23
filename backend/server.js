@@ -38,6 +38,7 @@ app.use("/api/polls", votesRouter);
 app.use("/api/buildings", buildingsRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/stanplan", stanplanRouter);
+app.use("/api/stanblog", stanplanRouter);
 
 import passport from "passport";
 import "./auth/googleStrategy.js";

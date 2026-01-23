@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { listPositiveOutcomeDiscussions } from "../services/stanplanService.js";
+import { listPositiveOutcomeDiscussions, createMeetingFromDiscussion } from "../services/stanplanService.js";
 import { stanplanAuth } from "../middleware/stanplanAuth.js";
+import { requireAuth, requireRole } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -19,5 +20,21 @@ router.get(
   }
 );
 
+// Predstavnik saziva sastanak kad je prag dosegnut
+router.post(
+  "/meetings/from-discussion/:discussionId",
+  requireAuth,
+  requireRole("predstavnik"),
+  async (req, res, next) => {
+    try {
+      const { discussionId } = req.params;
+      const { datetime } = req.body || {};
+      const out = await createMeetingFromDiscussion(discussionId, datetime, req.user);
+      res.status(201).json(out);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 export default router;

@@ -548,6 +548,89 @@ function DiscussionPollAndVotes({ discussion, onChange }) {
     const canModerate = !!discussion.canModerate;
     const canViewContent = discussion.canViewContent !== false;
 
+    // Sazivanje sastanka (StanPlan)
+    const [meetingOpen, setMeetingOpen] = useState(false);
+    const [meetingDatetime, setMeetingDatetime] = useState(""); // datetime-local string
+    const [meetingSending, setMeetingSending] = useState(false);
+    const [meetingMsg, setMeetingMsg] = useState("");
+
+    const canCallMeeting =
+        !!pollActive &&
+        !!summary?.thresholdReached &&
+        auth.user?.role === "predstavnik";
+
+    function openMeetingPrompt() {
+        setMeetingMsg("");
+
+        // default: sljedeći puni sat
+        if (!meetingDatetime) {
+            const now = new Date();
+            now.setMinutes(0, 0, 0);
+            now.setHours(now.getHours() + 1);
+
+            const pad = (n) => String(n).padStart(2, "0");
+            const localVal =
+                now.getFullYear() +
+                "-" +
+                pad(now.getMonth() + 1) +
+                "-" +
+                pad(now.getDate()) +
+                "T" +
+                pad(now.getHours()) +
+                ":" +
+                pad(now.getMinutes());
+
+            setMeetingDatetime(localVal);
+        }
+
+        setMeetingOpen(true);
+    }
+
+    async function sendMeetingToStanplan() {
+        if (!meetingDatetime) {
+            setMeetingMsg("Odaberite datum i vrijeme.");
+            return;
+        }
+
+        const dt = new Date(meetingDatetime);
+        if (Number.isNaN(dt.getTime())) {
+            setMeetingMsg("Neispravan datum/vrijeme.");
+            return;
+        }
+
+        setMeetingSending(true);
+        setMeetingMsg("");
+
+        try {
+            const res = await fetch(
+                `/api/stanplan/meetings/from-discussion/${discussion.id}`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: "Bearer " + auth.token,
+                    },
+                    body: JSON.stringify({ datetime: dt.toISOString() }),
+                }
+            );
+
+            const out = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                setMeetingMsg(out?.error || "Greška pri slanju StanPlan serveru.");
+                return;
+            }
+
+            setMeetingMsg("✅ Poziv na sastanak poslan.");
+            setTimeout(() => setMeetingOpen(false), 700);
+        } catch (err) {
+            console.error(err);
+            setMeetingMsg("Greška u komunikaciji.");
+        } finally {
+            setMeetingSending(false);
+        }
+    }
+
+
     // Load votes summary
     useEffect(() => {
         async function load() {
@@ -719,10 +802,10 @@ function DiscussionPollAndVotes({ discussion, onChange }) {
                 {loading
                     ? "Učitavam…"
                     : !pollActive
-                      ? "Nema aktivne ankete."
-                      : summary?.error
-                        ? summary.error
-                        : "Sažetak glasanja:"}
+                        ? "Nema aktivne ankete."
+                        : summary?.error
+                            ? summary.error
+                            : "Sažetak glasanja:"}
             </div>
 
             {pollActive && !summary?.error && (
@@ -742,9 +825,8 @@ function DiscussionPollAndVotes({ discussion, onChange }) {
                     <div id="threshold" className="muted" style={{ marginBottom: 8 }}>
                         {summary?.thresholdReached
                             ? "✅ Prag dosegnut."
-                            : `ℹ️ Prag nije dosegnut. (Suvlasnika: ${
-                                  summary?.totalOwners || 0
-                              })`}
+                            : `ℹ️ Prag nije dosegnut. (Suvlasnika: ${summary?.totalOwners || 0
+                            })`}
                     </div>
 
                     {!closed && (
@@ -781,6 +863,115 @@ function DiscussionPollAndVotes({ discussion, onChange }) {
                             )}
                         </div>
                     )}
+
+                    {canCallMeeting && !closed && (
+                        <div style={{ marginTop: 12, textAlign: "center" }}>
+                            <button
+                                id="callMeetingBtn"
+                                className="btn primary"
+                                type="button"
+                                onClick={openMeetingPrompt}
+                            >
+                                Sazovi sastanak
+                            </button>
+                        </div>
+                    )}
+
+                    {meetingOpen && (
+                        <div
+                            role="dialog"
+                            aria-modal="true"
+                            style={{
+                                position: "fixed",
+                                inset: 0,
+                                background: "rgba(0,0,0,0.35)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                zIndex: 1000,
+                                padding: 12,
+                            }}
+                            onClick={() => {
+                                if (!meetingSending) setMeetingOpen(false);
+                            }}
+                        >
+                            <div
+                                className="card"
+                                style={{ width: "min(520px, 100%)", padding: 16 }}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        gap: 8,
+                                    }}
+                                >
+                                    <h3 style={{ margin: 0 }}>Sazovi sastanak</h3>
+                                    <button
+                                        type="button"
+                                        className="btn"
+                                        onClick={() => setMeetingOpen(false)}
+                                        disabled={meetingSending}
+                                    >
+                                        Zatvori
+                                    </button>
+                                </div>
+
+                                <div style={{ marginTop: 10 }}>
+                                    <label className="muted" htmlFor="meetingDatetime">
+                                        Datum i vrijeme sastanka:
+                                    </label>
+                                    <input
+                                        id="meetingDatetime"
+                                        type="datetime-local"
+                                        value={meetingDatetime}
+                                        onChange={(e) => setMeetingDatetime(e.target.value)}
+                                        style={{
+                                            width: "100%",
+                                            padding: 6,
+                                            marginTop: 6,
+                                        }}
+                                        disabled={meetingSending}
+                                    />
+                                </div>
+
+                                {meetingMsg && (
+                                    <div className="muted" style={{ marginTop: 10 }}>
+                                        {meetingMsg}
+                                    </div>
+                                )}
+
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "flex-end",
+                                        gap: 8,
+                                        marginTop: 14,
+                                    }}
+                                >
+                                    <button
+                                        type="button"
+                                        className="btn"
+                                        onClick={() => setMeetingOpen(false)}
+                                        disabled={meetingSending}
+                                    >
+                                        Odustani
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn primary"
+                                        onClick={sendMeetingToStanplan}
+                                        disabled={meetingSending}
+                                    >
+                                        {meetingSending ? "Šaljem…" : "Pošalji"}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                 </>
             )}
         </section>
